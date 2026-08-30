@@ -1,0 +1,80 @@
+name: Sideload Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      ipa_release_tag:
+        description: 'Release tag holding the input decrypted IPA asset'
+        required: false
+        default: 'input-444'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Theos
+        env:
+          CI: "1"
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)" < /dev/null
+          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+
+      - name: Extract patched iPhoneOS 14.5 SDK
+        run: |
+          mkdir -p "$THEOS/sdks"
+          tar -xJf sdks/iPhoneOS14.5.sdk.tar.xz -C "$THEOS/sdks"
+          ls "$THEOS/sdks"
+
+      - name: Stage CydiaSubstrate for SIDELOAD build-time linking
+        run: |
+          mkdir -p "$THEOS/vendor/lib"
+          rm -rf "$THEOS/vendor/lib/CydiaSubstrate.framework"
+          cp -R third_party/CydiaSubstrate.framework "$THEOS/vendor/lib/CydiaSubstrate.framework"
+
+      - name: Pin Xcode14.xctoolchain
+        run: |
+          mkdir -p "$THEOS/toolchain"
+          picked=""
+          for app in /Applications/Xcode_14*.app; do
+            if [ -d "$app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain" ]; then
+              picked="$app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain"
+              break
+            fi
+          done
+          if [ -z "$picked" ]; then
+            picked="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
+            echo "::warning::No dedicated Xcode 14.x image found on this runner; falling back to the active Xcode toolchain at $picked"
+          fi
+          ln -s "$picked" "$THEOS/toolchain/Xcode14.xctoolchain"
+          "$THEOS/toolchain/Xcode14.xctoolchain/usr/bin/clang" --version
+
+      - name: Download decrypted Instagram IPA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/ipa-in /tmp/ipa-extracted
+          gh release download "${{ github.event.inputs.ipa_release_tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern '*.ipa' \
+            --dir /tmp/ipa-in
+          ipa_file="$(ls /tmp/ipa-in/*.ipa | head -1)"
+          echo "Downloaded: $ipa_file"
+          unzip -q "$ipa_file" -d /tmp/ipa-extracted
+          mkdir -p input
+          cp -R /tmp/ipa-extracted/Payload input/Payload
+          find input/Payload -maxdepth 2
+
+      - name: Build sideload IPA
+        run: |
+          chmod +x build.sh
+          ./build.sh sideload
+
+      - name: Upload patched IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Instagram_patched_444
+          path: output/Instagram_patched.ipa
+          retention-days: 7
