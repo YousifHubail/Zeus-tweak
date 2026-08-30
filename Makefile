@@ -39,12 +39,21 @@ else
 	Theta_CFLAGS += -DSIDELOAD=1
 endif
 
+# The bundled/patched iPhoneOS14.5 SDK ships no usr/include/c++/v1 at all — old
+# Theos SDKs relied on the paired Xcode *toolchain* for libc++ headers, but Xcode
+# 15+ moved those into the SDK instead. On a modern host toolchain that leaves no
+# <cmath> etc. anywhere in the search path (fails inside the ObjC++ 'simd' module
+# build). Fall back to the current Xcode's own iphoneos SDK C++ headers for those;
+# they're version-agnostic pure-C++ standard library headers, so this is safe
+# regardless of which Xcode/SDK is actually installed on the build machine.
+HOST_IOS_CXX_HEADERS := $(shell xcrun --sdk iphoneos --show-sdk-path 2>/dev/null)/usr/include/c++/v1
+
 Theta_CFLAGS += -fobjc-arc \
 	-Wno-unused-variable -Wno-unused-value -Wno-deprecated-declarations \
 	-Wno-nullability-completeness -Wno-unused-function -Wno-incompatible-pointer-types \
 	-I$(THEOS_PROJECT_DIR) \
 	-DTHETA_VERSION='"v$(THEOS_PACKAGE_BASE_VERSION)"' \
-	-fno-modules -fno-implicit-modules
+	-isystem $(HOST_IOS_CXX_HEADERS)
 
 # FFmpeg headers (runtime loaded via dlopen)
 Theta_CFLAGS += -I"$(THEOS_PROJECT_DIR)/layout/Library/Application Support/ffmpeg.framework"
