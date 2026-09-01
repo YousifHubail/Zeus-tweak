@@ -1,13 +1,24 @@
 static void (*orig_shakeToOpen)(id self, SEL _cmd, int arg1);
 static void hook_shakeToOpen(id self, SEL _cmd, int arg1) {
     @try {
+#ifndef SIDELOAD
         if (!ENABLED(@"Shake To Open")) {
             orig_shakeToOpen(self, _cmd, arg1);
             return;
         }
+#else
+        // Sideload rescue hatch: shake ALWAYS opens Zeus settings, pref or not.
+        // Every other entry point is anchored to Instagram UI -- the Home tab
+        // long-press (_homeButtonLongPressed:) and the gear injected into
+        // IGHomeFeedHeaderView. Turning on Liquid Glass flips Instagram to the
+        // Homecoming floating tab bar, which drops the Home tab and reshapes the
+        // feed header -- killing both at once and stranding the user with no way
+        // back into the settings needed to turn it off. UIMotionEvent is UIKit,
+        // so this path survives any Instagram redesign.
+#endif
         
         if (arg1 == 1) {
-            UIViewController *topController = [ThetaHelper topViewController];
+            UIViewController *topController = [ZeusHelper topViewController];
             if (!topController) {
                 return;
             }
@@ -48,6 +59,6 @@ static void hook_shakeToOpen(id self, SEL _cmd, int arg1) {
     }
 }
 
-void THRegisterShakeToOpenHooks(void) {
+void ZURegisterShakeToOpenHooks(void) {
     NullHookMessageEx(objc_getClass("UIMotionEvent"), @selector(setShakeState:), (void *)hook_shakeToOpen, &orig_shakeToOpen);
 }

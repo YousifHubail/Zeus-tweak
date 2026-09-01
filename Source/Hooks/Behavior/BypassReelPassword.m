@@ -1,21 +1,21 @@
-static char kThetaBypassTimerKey;
-static char kThetaBypassConstraintsKey;
-static char kThetaBypassObserversKey;
-static char kThetaBypassShareStateKey;
-static char kThetaBypassOriginalFrameKey;
-static char kThetaHotColdPrevCorrectKey;
-static char kThetaHotColdStaleCountKey;
-static char kThetaHotColdPrevTypedLenKey;
-static char kThetaBypassDisplayLinkKey;
-static char kThetaBypassDisplayLinkTargetKey;
-static char kThetaBypassButtonTargetKey;
+static char kZeusBypassTimerKey;
+static char kZeusBypassConstraintsKey;
+static char kZeusBypassObserversKey;
+static char kZeusBypassShareStateKey;
+static char kZeusBypassOriginalFrameKey;
+static char kZeusHotColdPrevCorrectKey;
+static char kZeusHotColdStaleCountKey;
+static char kZeusHotColdPrevTypedLenKey;
+static char kZeusBypassDisplayLinkKey;
+static char kZeusBypassDisplayLinkTargetKey;
+static char kZeusBypassButtonTargetKey;
 
-static void ThetaTeardownBypassButton(UIButton *button);
-static void ThetaGlobalDestroyBypassArtifacts(void);
-static void ThetaAdjustBypassElevation(UIButton *button, UIView *container, UIView *root, id owner);
-static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root);
+static void ZeusTeardownBypassButton(UIButton *button);
+static void ZeusGlobalDestroyBypassArtifacts(void);
+static void ZeusAdjustBypassElevation(UIButton *button, UIView *container, UIView *root, id owner);
+static BOOL ZeusViewIsOnscreen(UIView *view, UIView *root);
 
-static BOOL ThetaIsShareClass(UIViewController *vc) {
+static BOOL ZeusIsShareClass(UIViewController *vc) {
     static Class DirectShareClass = Nil;
     static Class PartialModalNavClass = Nil;
     static dispatch_once_t onceToken;
@@ -26,7 +26,7 @@ static BOOL ThetaIsShareClass(UIViewController *vc) {
     return (DirectShareClass && [vc isKindOfClass:DirectShareClass]) || (PartialModalNavClass && [vc isKindOfClass:PartialModalNavClass]);
 }
 
-static NSArray<UIWindow *> *ThetaPrimaryWindows(void) {
+static NSArray<UIWindow *> *ZeusPrimaryWindows(void) {
     if (![UIApplication respondsToSelector:@selector(sharedApplication)]) { return @[]; }
     if (@available(iOS 13.0, *)) {
         for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
@@ -39,8 +39,8 @@ static NSArray<UIWindow *> *ThetaPrimaryWindows(void) {
     return UIApplication.sharedApplication.windows ?: @[];
 }
 
-static BOOL ThetaIsShareSheetPresented(void) {
-    NSArray<UIWindow *> *windows = ThetaPrimaryWindows();
+static BOOL ZeusIsShareSheetPresented(void) {
+    NSArray<UIWindow *> *windows = ZeusPrimaryWindows();
     for (UIWindow *w in windows) {
         if (w.hidden) { continue; }
         UIViewController *vc = w.rootViewController;
@@ -49,14 +49,14 @@ static BOOL ThetaIsShareSheetPresented(void) {
         while (top.presentedViewController) { top = top.presentedViewController; }
         UIViewController *cursor = top;
         while (cursor) {
-            if (ThetaIsShareClass(cursor)) { return YES; }
+            if (ZeusIsShareClass(cursor)) { return YES; }
             cursor = cursor.presentingViewController;
         }
     }
     return NO;
 }
 
-static CGFloat ThetaMatchScore(NSString *typedRaw, NSString *answerRaw) {
+static CGFloat ZeusMatchScore(NSString *typedRaw, NSString *answerRaw) {
     if (typedRaw.length == 0 || answerRaw.length == 0) { return 0.0; }
     NSString *typed = [typedRaw lowercaseString];
     NSString *answer = [answerRaw lowercaseString];
@@ -72,7 +72,7 @@ static CGFloat ThetaMatchScore(NSString *typedRaw, NSString *answerRaw) {
     return ratio;
 }
 
-static NSString *ThetaTemperatureLabel(CGFloat score) {
+static NSString *ZeusTemperatureLabel(CGFloat score) {
     if (score >= 0.95) return @"Scorching! 🔥🔥";
     if (score >= 0.75) return @"Hot 🔥";
     if (score >= 0.55) return @"Warm 🙂";
@@ -81,14 +81,14 @@ static NSString *ThetaTemperatureLabel(CGFloat score) {
     return @"Ice Cold ❄️";
 }
 
-@interface ThetaBypassDisplayLinkTarget : NSObject
+@interface ZeusBypassDisplayLinkTarget : NSObject
 @property (nonatomic, weak) UIButton *button;
 @property (nonatomic, weak) UIView *container;
 @property (nonatomic, weak) UIView *root;
 @property (nonatomic, weak) id owner;
 - (void)tick:(CADisplayLink *)link;
 @end
-static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root) {
+static BOOL ZeusViewIsOnscreen(UIView *view, UIView *root) {
 	if (!view || !view.window) { return NO; }
 	if (!root) { root = view.window; }
 	// Check visibility in hierarchy
@@ -105,21 +105,21 @@ static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root) {
 	return area >= minArea;
 }
 
-@implementation ThetaBypassDisplayLinkTarget
+@implementation ZeusBypassDisplayLinkTarget
 - (void)tick:(CADisplayLink *)link {
     UIButton *button = self.button;
     if (!button) { [link invalidate]; return; }
     UIView *root = self.root ?: button.window;
     id owner = self.owner;
     if (!owner || !root) {
-        ThetaTeardownBypassButton(button);
+        ZeusTeardownBypassButton(button);
         [link invalidate];
         return;
     }
     if (button.superview != root) { return; }
     UITextField *textField = nil; @try { textField = [owner valueForKey:@"_passwordTextField"]; } @catch (__unused NSException *e) {}
-	if (!textField || !textField.window || !ThetaViewIsOnscreen(textField, root)) {
-        ThetaTeardownBypassButton(button);
+	if (!textField || !textField.window || !ZeusViewIsOnscreen(textField, root)) {
+        ZeusTeardownBypassButton(button);
         [link invalidate];
         return;
     }
@@ -133,7 +133,7 @@ static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root) {
 }
 @end
 
-@interface ThetaBypassButtonTarget : NSObject
+@interface ZeusBypassButtonTarget : NSObject
 @property (nonatomic, weak) UIButton *button;
 @property (nonatomic, weak) UIView *container;
 @property (nonatomic, weak) UIView *root;
@@ -141,7 +141,7 @@ static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root) {
 - (void)handleTap:(id)sender;
 @end
 
-@implementation ThetaBypassButtonTarget
+@implementation ZeusBypassButtonTarget
 - (void)handleTap:(id)sender {
 	id owner = self.owner;
 	if (!owner) {
@@ -178,7 +178,7 @@ static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root) {
 		btn = (UIButton *)[searchRoot viewWithTag:869321];
 	}
 	if (!btn) {
-		ThetaGlobalDestroyBypassArtifacts();
+		ZeusGlobalDestroyBypassArtifacts();
 		return;
 	}
 	btn.userInteractionEnabled = NO;
@@ -186,33 +186,33 @@ static BOOL ThetaViewIsOnscreen(UIView *view, UIView *root) {
 		animations:^{
 			btn.alpha = 0.0;
 		} completion:^(BOOL finished) {
-			ThetaTeardownBypassButton(btn);
-			ThetaGlobalDestroyBypassArtifacts();
+			ZeusTeardownBypassButton(btn);
+			ZeusGlobalDestroyBypassArtifacts();
 			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-				[ThetaHelper showLoadToast:@"Bypassed Password" subtitle:[NSString stringWithFormat:@"Password was \"%@\".", ans ?: @""] icon:[ThetaHelper imageFromEmojiString:@"🤦‍♂️" width:300] autoHide:4 openURL:nil];
+				[ZeusHelper showLoadToast:@"Bypassed Password" subtitle:[NSString stringWithFormat:@"Password was \"%@\".", ans ?: @""] icon:[ZeusHelper imageFromEmojiString:@"🤦‍♂️" width:300] autoHide:4 openURL:nil];
 			});
 		}];
 }
 @end
 
-static void ThetaTeardownBypassButton(UIButton *button) {
+static void ZeusTeardownBypassButton(UIButton *button) {
     if (!button) { return; }
     [button removeTarget:nil action:NULL forControlEvents:UIControlEventAllEvents];
-    NSTimer *timer = objc_getAssociatedObject(button, &kThetaBypassTimerKey);
-    if (timer) { [timer invalidate]; objc_setAssociatedObject(button, &kThetaBypassTimerKey, nil, OBJC_ASSOCIATION_ASSIGN); }
-    NSArray *observers = objc_getAssociatedObject(button, &kThetaBypassObserversKey);
+    NSTimer *timer = objc_getAssociatedObject(button, &kZeusBypassTimerKey);
+    if (timer) { [timer invalidate]; objc_setAssociatedObject(button, &kZeusBypassTimerKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+    NSArray *observers = objc_getAssociatedObject(button, &kZeusBypassObserversKey);
     if ([observers isKindOfClass:[NSArray class]]) {
         NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
         for (id obs in observers) {
             if (obs && obs != [NSNull null]) { [nc removeObserver:obs]; }
         }
-        objc_setAssociatedObject(button, &kThetaBypassObserversKey, nil, OBJC_ASSOCIATION_ASSIGN);
+        objc_setAssociatedObject(button, &kZeusBypassObserversKey, nil, OBJC_ASSOCIATION_ASSIGN);
     }
-    NSArray *saved = objc_getAssociatedObject(button, &kThetaBypassConstraintsKey);
-    if (saved) { [NSLayoutConstraint deactivateConstraints:saved]; objc_setAssociatedObject(button, &kThetaBypassConstraintsKey, nil, OBJC_ASSOCIATION_ASSIGN); }
-    CADisplayLink *link = objc_getAssociatedObject(button, &kThetaBypassDisplayLinkKey);
-    if (link) { [link invalidate]; objc_setAssociatedObject(button, &kThetaBypassDisplayLinkKey, nil, OBJC_ASSOCIATION_ASSIGN); }
-    objc_setAssociatedObject(button, &kThetaBypassDisplayLinkTargetKey, nil, OBJC_ASSOCIATION_ASSIGN);
+    NSArray *saved = objc_getAssociatedObject(button, &kZeusBypassConstraintsKey);
+    if (saved) { [NSLayoutConstraint deactivateConstraints:saved]; objc_setAssociatedObject(button, &kZeusBypassConstraintsKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+    CADisplayLink *link = objc_getAssociatedObject(button, &kZeusBypassDisplayLinkKey);
+    if (link) { [link invalidate]; objc_setAssociatedObject(button, &kZeusBypassDisplayLinkKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+    objc_setAssociatedObject(button, &kZeusBypassDisplayLinkTargetKey, nil, OBJC_ASSOCIATION_ASSIGN);
     id owner = nil;
     UIResponder *responder = button.nextResponder;
     while (responder && ![responder isKindOfClass:[UIViewController class]]) { responder = responder.nextResponder; }
@@ -227,29 +227,29 @@ static void ThetaTeardownBypassButton(UIButton *button) {
         UITextField *tf = owner ? [owner valueForKey:@"_passwordTextField"] : nil;
         if ([tf isKindOfClass:[UITextField class]]) {
             [tf removeTarget:nil action:NULL forControlEvents:UIControlEventEditingChanged];
-            objc_setAssociatedObject(tf, &kThetaHotColdPrevCorrectKey, nil, OBJC_ASSOCIATION_ASSIGN);
-            objc_setAssociatedObject(tf, &kThetaHotColdPrevTypedLenKey, nil, OBJC_ASSOCIATION_ASSIGN);
-            objc_setAssociatedObject(tf, &kThetaHotColdStaleCountKey, nil, OBJC_ASSOCIATION_ASSIGN);
+            objc_setAssociatedObject(tf, &kZeusHotColdPrevCorrectKey, nil, OBJC_ASSOCIATION_ASSIGN);
+            objc_setAssociatedObject(tf, &kZeusHotColdPrevTypedLenKey, nil, OBJC_ASSOCIATION_ASSIGN);
+            objc_setAssociatedObject(tf, &kZeusHotColdStaleCountKey, nil, OBJC_ASSOCIATION_ASSIGN);
         }
     } @catch (__unused NSException *e) {}
     [button removeFromSuperview];
-    NSArray<UIWindow *> *windows = ThetaPrimaryWindows();
+    NSArray<UIWindow *> *windows = ZeusPrimaryWindows();
     for (UIWindow *w in windows) {
         UIView *v = [w viewWithTag:869321];
         if (v) { [v removeFromSuperview]; }
         UIView *assist = [w viewWithTag:869322];
         if (assist) { [assist removeFromSuperview]; }
     }
-    objc_setAssociatedObject(button, &kThetaBypassOriginalFrameKey, nil, OBJC_ASSOCIATION_ASSIGN);
-    objc_setAssociatedObject(button, &kThetaBypassShareStateKey, nil, OBJC_ASSOCIATION_ASSIGN);
+    objc_setAssociatedObject(button, &kZeusBypassOriginalFrameKey, nil, OBJC_ASSOCIATION_ASSIGN);
+    objc_setAssociatedObject(button, &kZeusBypassShareStateKey, nil, OBJC_ASSOCIATION_ASSIGN);
 }
 
-static void ThetaGlobalDestroyBypassArtifacts(void) {
-    NSArray<UIWindow *> *windows = ThetaPrimaryWindows();
+static void ZeusGlobalDestroyBypassArtifacts(void) {
+    NSArray<UIWindow *> *windows = ZeusPrimaryWindows();
     for (UIWindow *w in windows) {
         UIView *maybeButton = [w viewWithTag:869321];
         if ([maybeButton isKindOfClass:[UIButton class]]) {
-            ThetaTeardownBypassButton((UIButton *)maybeButton);
+            ZeusTeardownBypassButton((UIButton *)maybeButton);
         } else if (maybeButton) {
             [maybeButton removeFromSuperview];
         }
@@ -258,20 +258,20 @@ static void ThetaGlobalDestroyBypassArtifacts(void) {
     }
 }
 
-static void ThetaUpdateBypassButtonPlacement(UIButton *button, UIView *container, UIView *root, id owner) {
+static void ZeusUpdateBypassButtonPlacement(UIButton *button, UIView *container, UIView *root, id owner) {
     if (!button) { return; }
-    if (!owner || !container) { ThetaTeardownBypassButton(button); return; }
+    if (!owner || !container) { ZeusTeardownBypassButton(button); return; }
     if (button.superview != container) {
-        NSArray *saved = objc_getAssociatedObject(button, &kThetaBypassConstraintsKey);
-        if (saved) { [NSLayoutConstraint deactivateConstraints:saved]; objc_setAssociatedObject(button, &kThetaBypassConstraintsKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+        NSArray *saved = objc_getAssociatedObject(button, &kZeusBypassConstraintsKey);
+        if (saved) { [NSLayoutConstraint deactivateConstraints:saved]; objc_setAssociatedObject(button, &kZeusBypassConstraintsKey, nil, OBJC_ASSOCIATION_ASSIGN); }
         [button removeFromSuperview];
         [container addSubview:button];
         [button setTranslatesAutoresizingMaskIntoConstraints:NO];
     }
     UITextField *textField = nil;
     @try { textField = [owner valueForKey:@"_passwordTextField"]; } @catch (__unused NSException *e) { textField = nil; }
-    if (!textField) { ThetaTeardownBypassButton(button); return; }
-    NSArray *existing = objc_getAssociatedObject(button, &kThetaBypassConstraintsKey);
+    if (!textField) { ZeusTeardownBypassButton(button); return; }
+    NSArray *existing = objc_getAssociatedObject(button, &kZeusBypassConstraintsKey);
     if (!existing || existing.count == 0) {
         NSArray *constraints = @[
             [button.topAnchor constraintEqualToAnchor:textField.bottomAnchor constant:20],
@@ -280,13 +280,13 @@ static void ThetaUpdateBypassButtonPlacement(UIButton *button, UIView *container
             [button.heightAnchor constraintEqualToConstant:40]
         ];
         [NSLayoutConstraint activateConstraints:constraints];
-        objc_setAssociatedObject(button, &kThetaBypassConstraintsKey, constraints, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(button, &kZeusBypassConstraintsKey, constraints, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     button.layer.zPosition = 10000;
     [container bringSubviewToFront:button];
 }
 
-static void ThetaAdjustBypassElevation(UIButton *button, UIView *container, UIView *root, id owner) {
+static void ZeusAdjustBypassElevation(UIButton *button, UIView *container, UIView *root, id owner) {
 	if (!button || !container || !owner) { return; }
 	if (!root) {
 		root = container.window ?: container;
@@ -294,49 +294,49 @@ static void ThetaAdjustBypassElevation(UIButton *button, UIView *container, UIVi
 	}
 	UITextField *visibleTF = nil;
 	@try { visibleTF = [owner valueForKey:@"_passwordTextField"]; } @catch (__unused NSException *e) { visibleTF = nil; }
-	if (![visibleTF isKindOfClass:[UITextField class]] || visibleTF.window == nil || !ThetaViewIsOnscreen(visibleTF, root)) {
+	if (![visibleTF isKindOfClass:[UITextField class]] || visibleTF.window == nil || !ZeusViewIsOnscreen(visibleTF, root)) {
 		// No on-screen field: keep button within container (not elevated), disable interaction
-		CADisplayLink *link = objc_getAssociatedObject(button, &kThetaBypassDisplayLinkKey);
-		if (link) { [link invalidate]; objc_setAssociatedObject(button, &kThetaBypassDisplayLinkKey, nil, OBJC_ASSOCIATION_ASSIGN); }
-		objc_setAssociatedObject(button, &kThetaBypassDisplayLinkTargetKey, nil, OBJC_ASSOCIATION_ASSIGN);
+		CADisplayLink *link = objc_getAssociatedObject(button, &kZeusBypassDisplayLinkKey);
+		if (link) { [link invalidate]; objc_setAssociatedObject(button, &kZeusBypassDisplayLinkKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+		objc_setAssociatedObject(button, &kZeusBypassDisplayLinkTargetKey, nil, OBJC_ASSOCIATION_ASSIGN);
 		if (button.superview != container) {
 			[button removeFromSuperview];
 			[container addSubview:button];
 			[button setTranslatesAutoresizingMaskIntoConstraints:NO];
 		}
 		if ([visibleTF isKindOfClass:[UITextField class]]) {
-			ThetaUpdateBypassButtonPlacement(button, container, root, owner);
+			ZeusUpdateBypassButtonPlacement(button, container, root, owner);
 		}
 		button.userInteractionEnabled = NO;
 		button.layer.zPosition = 0;
 		button.hidden = YES;
 		return;
 	}
-	BOOL sharePresented = ThetaIsShareSheetPresented();
+	BOOL sharePresented = ZeusIsShareSheetPresented();
 
 	if (!sharePresented) {
 		// Elevate to window/root with display link placement for reliable taps
 		// Remove any container constraints
-		NSArray *saved = objc_getAssociatedObject(button, &kThetaBypassConstraintsKey);
-		if (saved) { [NSLayoutConstraint deactivateConstraints:saved]; objc_setAssociatedObject(button, &kThetaBypassConstraintsKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+		NSArray *saved = objc_getAssociatedObject(button, &kZeusBypassConstraintsKey);
+		if (saved) { [NSLayoutConstraint deactivateConstraints:saved]; objc_setAssociatedObject(button, &kZeusBypassConstraintsKey, nil, OBJC_ASSOCIATION_ASSIGN); }
 		if (button.superview != root) {
 			[button removeFromSuperview];
 			[root addSubview:button];
 			[button setTranslatesAutoresizingMaskIntoConstraints:YES];
 		}
 		// Start (or keep) the display link to track the text field position
-		ThetaBypassDisplayLinkTarget *target = objc_getAssociatedObject(button, &kThetaBypassDisplayLinkTargetKey);
-		CADisplayLink *link = objc_getAssociatedObject(button, &kThetaBypassDisplayLinkKey);
+		ZeusBypassDisplayLinkTarget *target = objc_getAssociatedObject(button, &kZeusBypassDisplayLinkTargetKey);
+		CADisplayLink *link = objc_getAssociatedObject(button, &kZeusBypassDisplayLinkKey);
 		if (!target || !link) {
-			target = [ThetaBypassDisplayLinkTarget new];
+			target = [ZeusBypassDisplayLinkTarget new];
 			target.button = button;
 			target.container = container;
 			target.root = root;
 			target.owner = owner;
 			link = [CADisplayLink displayLinkWithTarget:target selector:@selector(tick:)];
 			[link addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
-			objc_setAssociatedObject(button, &kThetaBypassDisplayLinkTargetKey, target, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-			objc_setAssociatedObject(button, &kThetaBypassDisplayLinkKey, link, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+			objc_setAssociatedObject(button, &kZeusBypassDisplayLinkTargetKey, target, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+			objc_setAssociatedObject(button, &kZeusBypassDisplayLinkKey, link, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 		}
 		button.userInteractionEnabled = YES;
 		button.layer.zPosition = 100000;
@@ -344,15 +344,15 @@ static void ThetaAdjustBypassElevation(UIButton *button, UIView *container, UIVi
 		button.hidden = NO;
 	} else {
 		// Push back into container with constraints and disable interaction to avoid intercepting
-		CADisplayLink *link = objc_getAssociatedObject(button, &kThetaBypassDisplayLinkKey);
-		if (link) { [link invalidate]; objc_setAssociatedObject(button, &kThetaBypassDisplayLinkKey, nil, OBJC_ASSOCIATION_ASSIGN); }
-		objc_setAssociatedObject(button, &kThetaBypassDisplayLinkTargetKey, nil, OBJC_ASSOCIATION_ASSIGN);
+		CADisplayLink *link = objc_getAssociatedObject(button, &kZeusBypassDisplayLinkKey);
+		if (link) { [link invalidate]; objc_setAssociatedObject(button, &kZeusBypassDisplayLinkKey, nil, OBJC_ASSOCIATION_ASSIGN); }
+		objc_setAssociatedObject(button, &kZeusBypassDisplayLinkTargetKey, nil, OBJC_ASSOCIATION_ASSIGN);
 		if (button.superview != container) {
 			[button removeFromSuperview];
 			[container addSubview:button];
 			[button setTranslatesAutoresizingMaskIntoConstraints:NO];
 		}
-		ThetaUpdateBypassButtonPlacement(button, container, root, owner);
+		ZeusUpdateBypassButtonPlacement(button, container, root, owner);
 		button.userInteractionEnabled = NO;
 		button.layer.zPosition = 0;
 		[container sendSubviewToBack:button];
@@ -367,7 +367,7 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
         @try {
             UIView *container = [self valueForKey:@"_containerView"];
             if (container) {
-                ThetaGlobalDestroyBypassArtifacts();
+                ZeusGlobalDestroyBypassArtifacts();
                 UITextField *textField = [self valueForKey:@"_passwordTextField"];
                 NSString *answer = [self valueForKey:@"_answer"];
 
@@ -418,7 +418,7 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                     }
                 }
 
-                BOOL sharePresented = ThetaIsShareSheetPresented();
+                BOOL sharePresented = ZeusIsShareSheetPresented();
                 UIView *root = container.window;
                 if (!root) {
                     root = container;
@@ -430,7 +430,7 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                     return;
                 }
                 bypassButton.tag = 869321;
-                ThetaSetCaptureHiding(bypassButton);
+                ZeusSetCaptureHiding(bypassButton);
                 UIView *initialParent = container;
                 [initialParent addSubview:bypassButton];
 
@@ -451,14 +451,14 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                     [bypassButton.heightAnchor constraintEqualToConstant:40]
                 ];
                 [NSLayoutConstraint activateConstraints:constraints];
-                objc_setAssociatedObject(bypassButton, &kThetaBypassConstraintsKey, constraints, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                objc_setAssociatedObject(bypassButton, &kZeusBypassConstraintsKey, constraints, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
                 container.userInteractionEnabled = YES;
                 bypassButton.userInteractionEnabled = YES;
                 bypassButton.exclusiveTouch = YES;
                 bypassButton.layer.zPosition = 10000;
                 [initialParent bringSubviewToFront:bypassButton];
-				ThetaAdjustBypassElevation(bypassButton, container, root, self);
+				ZeusAdjustBypassElevation(bypassButton, container, root, self);
 
                 __weak typeof(self) weakSelf = self;
                 __weak UIView *weakContainer = container;
@@ -482,9 +482,9 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                         }
                     }
 
-                    NSNumber *prevCorrectNum = objc_getAssociatedObject(tfEdit, &kThetaHotColdPrevCorrectKey);
-                    NSNumber *prevTypedLenNum = objc_getAssociatedObject(tfEdit, &kThetaHotColdPrevTypedLenKey);
-                    NSNumber *staleCountNum = objc_getAssociatedObject(tfEdit, &kThetaHotColdStaleCountKey);
+                    NSNumber *prevCorrectNum = objc_getAssociatedObject(tfEdit, &kZeusHotColdPrevCorrectKey);
+                    NSNumber *prevTypedLenNum = objc_getAssociatedObject(tfEdit, &kZeusHotColdPrevTypedLenKey);
+                    NSNumber *staleCountNum = objc_getAssociatedObject(tfEdit, &kZeusHotColdStaleCountKey);
                     NSUInteger prevCorrect = prevCorrectNum ? [prevCorrectNum unsignedIntegerValue] : 0;
                     NSUInteger prevTypedLen = prevTypedLenNum ? [prevTypedLenNum unsignedIntegerValue] : 0;
                     NSUInteger staleCount = staleCountNum ? [staleCountNum unsignedIntegerValue] : 0;
@@ -499,11 +499,11 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                     } else {
                     }
 
-                    objc_setAssociatedObject(tfEdit, &kThetaHotColdPrevCorrectKey, @(correct), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-                    objc_setAssociatedObject(tfEdit, &kThetaHotColdPrevTypedLenKey, @(typed.length), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-                    objc_setAssociatedObject(tfEdit, &kThetaHotColdStaleCountKey, @(staleCount), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                    objc_setAssociatedObject(tfEdit, &kZeusHotColdPrevCorrectKey, @(correct), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                    objc_setAssociatedObject(tfEdit, &kZeusHotColdPrevTypedLenKey, @(typed.length), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                    objc_setAssociatedObject(tfEdit, &kZeusHotColdStaleCountKey, @(staleCount), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-                    CGFloat baseScore = ThetaMatchScore(typed, ansFull);
+                    CGFloat baseScore = ZeusMatchScore(typed, ansFull);
                     CGFloat adjusted = baseScore;
                     if (staleCount > 2) {
                         CGFloat decay = 0.05f * (CGFloat)(staleCount - 2);
@@ -514,11 +514,11 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                         [weakProgress setProgress:adjusted animated:YES];
                     }
                     if (weakTempLabel) {
-                        weakTempLabel.text = ThetaTemperatureLabel(adjusted);
+                        weakTempLabel.text = ZeusTemperatureLabel(adjusted);
                     }
                 }] forControlEvents:UIControlEventEditingChanged];
 
-				ThetaBypassButtonTarget *tapTarget = [ThetaBypassButtonTarget new];
+				ZeusBypassButtonTarget *tapTarget = [ZeusBypassButtonTarget new];
 				tapTarget.button = bypassButton;
 				tapTarget.container = weakContainer;
 				tapTarget.root = weakRoot;
@@ -529,7 +529,7 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
 						[tapTarget handleTap:bypassButton];
 					}] forControlEvents:UIControlEventPrimaryActionTriggered];
 				}
-				objc_setAssociatedObject(bypassButton, &kThetaBypassButtonTargetKey, tapTarget, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+				objc_setAssociatedObject(bypassButton, &kZeusBypassButtonTargetKey, tapTarget, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
                 [initialParent bringSubviewToFront:bypassButton];
 
@@ -537,33 +537,33 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
                                                                                     object:nil
                                                                                     queue:NSOperationQueue.mainQueue
                                                                                 usingBlock:^(NSNotification *_Nonnull note) {
-                                                                                    if (!weakSelf) { ThetaTeardownBypassButton(weakButton); return; }
-                                                                                    ThetaUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
-																					ThetaAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
+                                                                                    if (!weakSelf) { ZeusTeardownBypassButton(weakButton); return; }
+                                                                                    ZeusUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
+																					ZeusAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
                                                                                 }];
                 id didPresentObs = [[NSNotificationCenter defaultCenter] addObserverForName:UIWindowDidResignKeyNotification
                                                                                     object:nil
                                                                                     queue:NSOperationQueue.mainQueue
                                                                                 usingBlock:^(NSNotification *_Nonnull note) {
-                                                                                if (!weakSelf) { ThetaTeardownBypassButton(weakButton); return; }
-                                                                                ThetaUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
-																				ThetaAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
+                                                                                if (!weakSelf) { ZeusTeardownBypassButton(weakButton); return; }
+                                                                                ZeusUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
+																				ZeusAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
                                                                                 }];
                 id appActiveObs = [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification
                                                                                     object:nil
                                                                                     queue:NSOperationQueue.mainQueue
                                                                                 usingBlock:^(NSNotification *_Nonnull note) {
-                                                                                if (!weakSelf) { ThetaTeardownBypassButton(weakButton); return; }
-                                                                                ThetaUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
-																				ThetaAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
+                                                                                if (!weakSelf) { ZeusTeardownBypassButton(weakButton); return; }
+                                                                                ZeusUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
+																				ZeusAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
                                                                                 }];
                 id appForegroundObs = [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillEnterForegroundNotification
                                                                                         object:nil
                                                                                         queue:NSOperationQueue.mainQueue
                                                                                     usingBlock:^(NSNotification *_Nonnull note) {
-                                                                                    if (!weakSelf) { ThetaTeardownBypassButton(weakButton); return; }
-                                                                                    ThetaUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
-																					ThetaAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
+                                                                                    if (!weakSelf) { ZeusTeardownBypassButton(weakButton); return; }
+                                                                                    ZeusUpdateBypassButtonPlacement(weakButton, weakContainer, weakRoot, weakSelf);
+																					ZeusAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
                                                                                     }];
                 NSTimer *guardTimer = [NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer * _Nonnull t) {
                     if (!weakSelf || !weakButton || !weakContainer) { [t invalidate]; return; }
@@ -571,16 +571,16 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
 					UIView *ownerView = nil; @try { ownerView = [weakSelf valueForKey:@"view"]; } @catch (__unused NSException *e) { ownerView = nil; }
 					if (!guardTF || ![guardTF isKindOfClass:[UITextField class]] || guardTF.window == nil || ![ownerView isKindOfClass:[UIView class]] || ownerView.window == nil) {
 						// Keep the button, just adjust elevation back to container mode
-						ThetaAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
+						ZeusAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
 						return;
 					}
-					ThetaAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
+					ZeusAdjustBypassElevation(weakButton, weakContainer, weakRoot, weakSelf);
                 }];
                 [[NSRunLoop mainRunLoop] addTimer:guardTimer forMode:NSRunLoopCommonModes];
-                objc_setAssociatedObject(weakButton, &kThetaBypassTimerKey, guardTimer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                objc_setAssociatedObject(weakButton, &kZeusBypassTimerKey, guardTimer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
                 NSArray *observers = @[ willPresentObs ?: [NSNull null], didPresentObs ?: [NSNull null], appActiveObs ?: [NSNull null], appForegroundObs ?: [NSNull null] ];
-                objc_setAssociatedObject(bypassButton, &kThetaBypassObserversKey, observers, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                objc_setAssociatedObject(bypassButton, &kZeusBypassObserversKey, observers, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             }
         } @catch (NSException *e) {
             NSLog(@"Error in bypassReelPassword: %@", e);
@@ -588,6 +588,6 @@ static void hook_bypassReelPassword(id self, SEL _cmd) {
     }
 }
 
-void THRegisterBypassReelPasswordHooks(void) {
+void ZURegisterBypassReelPasswordHooks(void) {
     NullHookMessageEx(objc_getClass("IGMediaOverlayProfileWithPasswordView"), @selector(layoutSubviews), (void *)hook_bypassReelPassword, &orig_bypassReelPassword);
 }

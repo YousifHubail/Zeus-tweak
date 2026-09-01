@@ -1,5 +1,5 @@
 #import "Include/SecurityViewController.h"
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 
 #define ENABLED(setting) [[NSUserDefaults standardUserDefaults] boolForKey:[NSString stringWithFormat:@"%@_Enabled", setting]]
 
@@ -79,7 +79,7 @@ static void closeAppWithAnimation(void) {
     [authTimeoutTimer invalidate];
     authTimeoutTimer = [NSTimer scheduledTimerWithTimeInterval:30.0 repeats:NO block:^(NSTimer *timer) {
         // Timeout reached, close app
-        		[ThetaHelper showToastWithTitle:@"Authentication Timeout" subtitle:@"Please try again." icon:[ThetaHelper imageFromEmojiString:@"⏰" width:60] autoHide:2 openURL:nil];
+        		[ZeusHelper showToastWithTitle:@"Authentication Timeout" subtitle:@"Please try again." icon:[ZeusHelper imageFromEmojiString:@"⏰" width:60] autoHide:2 openURL:nil];
         closeAppWithAnimation();
     }];
 }
@@ -91,7 +91,7 @@ static void closeAppWithAnimation(void) {
 - (void)authenticate {
     // Check if max attempts reached
     if (currentAuthAttempts >= maxAuthAttempts) {
-        		[ThetaHelper showToastWithTitle:@"Too Many Attempts" subtitle:@"Please restart the app." icon:[ThetaHelper imageFromEmojiString:@"🚫" width:60] autoHide:3 openURL:nil];
+        		[ZeusHelper showToastWithTitle:@"Too Many Attempts" subtitle:@"Please restart the app." icon:[ZeusHelper imageFromEmojiString:@"🚫" width:60] autoHide:3 openURL:nil];
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             closeAppWithAnimation();
         });
@@ -114,8 +114,8 @@ static void closeAppWithAnimation(void) {
                 
                 if (success) {
                     [self dismissViewControllerAnimated:YES completion:nil];
-                    		[ThetaHelper showToastWithTitle:@"Thanks for authenticating!" subtitle:@"You're all set." icon:[ThetaHelper imageFromEmojiString:@"✅" width:60] autoHide:4 openURL:nil];
-					[ThetaHelper performHapticFeedbackIfEnabled];
+                    		[ZeusHelper showToastWithTitle:@"Thanks for authenticating!" subtitle:@"You're all set." icon:[ZeusHelper imageFromEmojiString:@"✅" width:60] autoHide:4 openURL:nil];
+					[ZeusHelper performHapticFeedbackIfEnabled];
                 } else {
                     // Handle specific authentication errors
                     NSString *errorMessage = @"Authentication failed. Please try again.";
@@ -146,7 +146,7 @@ static void closeAppWithAnimation(void) {
                         }
                     }
                     
-                    		[ThetaHelper showToastWithTitle:@"Authentication Failed" subtitle:errorMessage icon:[ThetaHelper imageFromEmojiString:@"❌" width:60] autoHide:3 openURL:nil];
+                    		[ZeusHelper showToastWithTitle:@"Authentication Failed" subtitle:errorMessage icon:[ZeusHelper imageFromEmojiString:@"❌" width:60] autoHide:3 openURL:nil];
                     
                     // If max attempts reached, close app after delay
                     if (currentAuthAttempts >= maxAuthAttempts) {
@@ -162,7 +162,7 @@ static void closeAppWithAnimation(void) {
         }];
     } else {
         // Device doesn't support biometric authentication
-        		[ThetaHelper showToastWithTitle:@"Authentication Not Available" subtitle:@"Please set up Face ID, Touch ID, or passcode in Settings." icon:[ThetaHelper imageFromEmojiString:@"⚙️" width:60] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+        		[ZeusHelper showToastWithTitle:@"Authentication Not Available" subtitle:@"Please set up Face ID, Touch ID, or passcode in Settings." icon:[ZeusHelper imageFromEmojiString:@"⚙️" width:60] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
         
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 4 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             closeAppWithAnimation();

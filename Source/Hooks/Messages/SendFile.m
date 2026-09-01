@@ -1,4 +1,4 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
@@ -40,7 +40,7 @@ static _THFilePickerDelegate *sTHFilePickerDelegate = nil;
 
 @end
 
-static void THShowFilePicker(UIViewController *threadVC) {
+static void ZUShowFilePicker(UIViewController *threadVC) {
     sTHFilePickerDelegate = [_THFilePickerDelegate new];
     sTHFilePickerDelegate.threadVC = threadVC;
 
@@ -76,7 +76,7 @@ static id hook_IGDSMenu_init(id self, SEL _cmd, NSArray *items, BOOL edr, id hea
 
     UIImage *img = [[UIImage systemImageNamed:@"doc"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     void (^handler)(void) = ^{
-        if (sTHFileThreadVC) THShowFilePicker(sTHFileThreadVC);
+        if (sTHFileThreadVC) ZUShowFilePicker(sTHFileThreadVC);
     };
 
     SEL initSel = @selector(initWithTitle:image:handler:);
@@ -103,7 +103,7 @@ static void hook_composerOverflow(id self, SEL _cmd, id plusButton) {
     sTHFileMenuPending = YES;
 }
 
-void THRegisterSendFileHooks(void) {
+void ZURegisterSendFileHooks(void) {
     Class menuCls = objc_getClass("IGDSMenu");
     SEL menuSel = @selector(initWithMenuItems:edr:headerLabelText:);
     NullHookMessageEx(menuCls, menuSel, (void *)hook_IGDSMenu_init, &orig_IGDSMenu_init);

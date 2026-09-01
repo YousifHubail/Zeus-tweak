@@ -1,6 +1,6 @@
-# Theta
+# Zeus
 
-Instagram tweak for jailbreak and sideload. Open Theta from the settings gear on the home feed, or by long-pressing the home tab.
+Instagram tweak for jailbreak and sideload. Open Zeus from the settings gear on the home feed, or by long-pressing the home tab.
 
 Tested against Instagram **441.0.0**.
 
@@ -8,7 +8,7 @@ Tested against Instagram **441.0.0**.
 
 - [Theos](https://theos.dev) with `THEOS` set (for example `export THEOS=/opt/theos`)
 - Theos `Xcode14.xctoolchain` at `$THEOS/toolchain/Xcode14.xctoolchain`
-- The **patched iPhoneOS 14.5 SDK** from this repo (see below). A stock Xcode SDK will not work — Theta is built with `SDKVERSION = 14.5` and needs Theos-patched private-framework stubs.
+- The **patched iPhoneOS 14.5 SDK** from this repo (see below). A stock Xcode SDK will not work — Zeus is built with `SDKVERSION = 14.5` and needs Theos-patched private-framework stubs.
 - Python 3 (used by `scripts/assemble.py` during the build)
 - A Mac with Xcode command-line tools
 
@@ -23,7 +23,7 @@ mkdir -p "$THEOS/sdks"
 tar -xJf sdks/iPhoneOS14.5.sdk.tar.xz -C "$THEOS/sdks"
 ```
 
-That creates `$THEOS/sdks/iPhoneOS14.5.sdk`. Do not unpack it inside the Theta repo; Theos only looks under `$THEOS/sdks`.
+That creates `$THEOS/sdks/iPhoneOS14.5.sdk`. Do not unpack it inside the Zeus repo; Theos only looks under `$THEOS/sdks`.
 
 ## Build
 
@@ -51,8 +51,8 @@ FFmpeg headers and frameworks live at `layout/Library/Application Support/ffmpeg
 
 1. Build with `./build.sh` or `./build.sh rootless`.
 2. Copy the `.deb` from `packages/` to the device and install it with Sileo, Zebra, or `dpkg -i`.
-   - Rootful: `packages/com.theta.tweak_1.0.0_iphoneos-arm.deb`
-   - Rootless: `packages/com.theta.tweak_1.0.0_iphoneos-arm64.deb`
+   - Rootful: `packages/com.zeus.tweak_1.0.0_iphoneos-arm.deb`
+   - Rootless: `packages/com.zeus.tweak_1.0.0_iphoneos-arm64.deb`
 3. Respring if the package manager does not, then open Instagram.
 
 If Theos device install is already configured (`THEOS_DEVICE_IP`), `make install` / `make install ROOTLESS=1` will install and reopen Instagram.
@@ -73,13 +73,13 @@ If Theos device install is already configured (`THEOS_DEVICE_IP`), `make install
    cp -R /tmp/ig/Payload input/
    ```
 
-2. Run `./build.sh sideload`. That compiles `Theta.dylib` with `SIDELOAD=1`, injects it into the Instagram binary, stages `CydiaSubstrate.framework`, and writes `output/Instagram_patched.ipa`.
+2. Run `./build.sh sideload`. That compiles `Zeus.dylib` with `SIDELOAD=1`, injects it into the Instagram binary, stages `CydiaSubstrate.framework`, and writes `output/Instagram_patched.ipa`.
 
 3. Install that IPA:
    - **Sideloadly / AltStore / SideStore** — open `output/Instagram_patched.ipa` and let the tool re-sign it with your Apple ID.
    - **TrollStore** — install the IPA on-device.
 
-4. Open Instagram. Theta settings use the same gear / home-tab long-press as jailbreak.
+4. Open Instagram. Zeus settings use the same gear / home-tab long-press as jailbreak.
 
 If Substrate cannot be found automatically, set `SUBSTRATE_FRAMEWORK_PATH` to a `CydiaSubstrate.framework` directory, or place one at `third_party/CydiaSubstrate.framework`.
 
@@ -89,7 +89,7 @@ If Substrate cannot be found automatically, set `SUBSTRATE_FRAMEWORK_PATH` to a 
 | --- | --- | --- |
 | **Navigation** (Tab Icon Order, Swipe Between Tabs, Launch Tab, Hide Feed/Explore/Reels/Messages Tab, Messenger Mode) | **Sideload only** | Broken |
 
-Jailbreak Navigation settings are unaffected. Everything else in Theta settings is expected to work on both jailbreak and sideload.
+Jailbreak Navigation settings are unaffected. Everything else in Zeus settings is expected to work on both jailbreak and sideload.
 
 ## Layout
 

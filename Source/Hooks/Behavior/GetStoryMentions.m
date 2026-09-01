@@ -1,24 +1,24 @@
 static NSArray *hook_bigTest(id self, SEL _cmd) {
     @try {
-        id sectionController = ThetaValueForKey(self, @"delegate");
+        id sectionController = ZeusValueForKey(self, @"delegate");
         if (!sectionController) return nil;
 
-        id media = ThetaValueForKey(sectionController, @"currentStoryItem");
+        id media = ZeusValueForKey(sectionController, @"currentStoryItem");
         if (!media) return nil;
 
         NSArray *reelMentions = nil;
         if ([media respondsToSelector:@selector(reelMentions)]) {
             reelMentions = [media performSelector:@selector(reelMentions)];
         } else {
-            reelMentions = ThetaValueForKey(media, @"reelMentions");
+            reelMentions = ZeusValueForKey(media, @"reelMentions");
         }
         if (![reelMentions isKindOfClass:[NSArray class]]) return nil;
 
         NSMutableArray *mentions = [NSMutableArray array];
         for (id mention in reelMentions) {
-            id user = ThetaValueForKey(mention, @"user");
+            id user = ZeusValueForKey(mention, @"user");
             if (!user) continue;
-            NSString *name = ThetaValueForKey(user, @"secondaryName");
+            NSString *name = ZeusValueForKey(user, @"secondaryName");
             NSString *username = nil;
             @try {
                 if ([user respondsToSelector:@selector(name)]) {
@@ -35,7 +35,7 @@ static NSArray *hook_bigTest(id self, SEL _cmd) {
     }
 }
 
-void THRegisterGetStoryMentionsHooks(void) {
+void ZURegisterGetStoryMentionsHooks(void) {
     Class cls = objc_getClass("IGStoryFullscreenCell");
     if (!cls) return;
     // Correct type encoding for NSArray * return (NullHookMessage defaults to void).

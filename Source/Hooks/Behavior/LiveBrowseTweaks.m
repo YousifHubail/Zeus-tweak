@@ -1,12 +1,12 @@
 #import "Include.h"
 #import "Include/InstagramHeaders.h"
-#import "Include/ThetaTweakCommon.h"
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusTweakCommon.h"
+#import "Include/ZeusHelper.h"
 #import <objc/runtime.h>
 
 /* Live viewer count polling + comment strip toggle. */
 
-static void theta_disableLiveViewerCountPuller(id feedbackController) {
+static void zeus_disableLiveViewerCountPuller(id feedbackController) {
     Ivar pullerIvar = class_getInstanceVariable([feedbackController class], "_viewCountPuller");
     if (!pullerIvar) return;
     id puller = object_getIvar(feedbackController, pullerIvar);
@@ -34,14 +34,14 @@ static void (*orig_liveFeedbackStart)(id, SEL);
 static void hook_liveFeedbackStart(id self, SEL _cmd) {
     orig_liveFeedbackStart(self, _cmd);
     if (ENABLED(@"Live Without Viewer List"))
-        theta_disableLiveViewerCountPuller(self);
+        zeus_disableLiveViewerCountPuller(self);
 }
 
-static __weak UIViewController *theta_activeLiveCommentsVC = nil;
-static BOOL theta_liveCommentsHidden = NO;
-static const void *kThetaLiveHeartLPKey = &kThetaLiveHeartLPKey;
+static __weak UIViewController *zeus_activeLiveCommentsVC = nil;
+static BOOL zeus_liveCommentsHidden = NO;
+static const void *kZeusLiveHeartLPKey = &kZeusLiveHeartLPKey;
 
-static void theta_hideCommentCollections(UIView *root, BOOL hide, int depth) {
+static void zeus_hideCommentCollections(UIView *root, BOOL hide, int depth) {
     if (!root || depth > 8) return;
     for (UIView *sub in root.subviews) {
         if ([sub isKindOfClass:[UICollectionView class]]) {
@@ -49,46 +49,46 @@ static void theta_hideCommentCollections(UIView *root, BOOL hide, int depth) {
             sub.userInteractionEnabled = !hide;
             continue;
         }
-        theta_hideCommentCollections(sub, hide, depth + 1);
+        zeus_hideCommentCollections(sub, hide, depth + 1);
     }
 }
 
-static void theta_applyLiveCommentsVisibility(void) {
-    if (!theta_activeLiveCommentsVC || !theta_activeLiveCommentsVC.isViewLoaded) return;
-    theta_hideCommentCollections(theta_activeLiveCommentsVC.view, theta_liveCommentsHidden, 0);
+static void zeus_applyLiveCommentsVisibility(void) {
+    if (!zeus_activeLiveCommentsVC || !zeus_activeLiveCommentsVC.isViewLoaded) return;
+    zeus_hideCommentCollections(zeus_activeLiveCommentsVC.view, zeus_liveCommentsHidden, 0);
 }
 
-@interface ThetaLiveCommentToggle : NSObject
+@interface ZeusLiveCommentToggle : NSObject
 + (instancetype)shared;
 - (void)heartLongPress:(UILongPressGestureRecognizer *)g;
 @end
 
-@implementation ThetaLiveCommentToggle
+@implementation ZeusLiveCommentToggle
 + (instancetype)shared {
-    static ThetaLiveCommentToggle *s;
+    static ZeusLiveCommentToggle *s;
     static dispatch_once_t once;
-    dispatch_once(&once, ^{ s = [ThetaLiveCommentToggle new]; });
+    dispatch_once(&once, ^{ s = [ZeusLiveCommentToggle new]; });
     return s;
 }
 - (void)heartLongPress:(UILongPressGestureRecognizer *)g {
     if (g.state != UIGestureRecognizerStateBegan) return;
     if (!ENABLED(@"Live Comments Sheet Toggle")) return;
-    theta_liveCommentsHidden = !theta_liveCommentsHidden;
-    theta_applyLiveCommentsVisibility();
+    zeus_liveCommentsHidden = !zeus_liveCommentsHidden;
+    zeus_applyLiveCommentsVisibility();
     if (ENABLED(@"Show Banners")) {
-        NSString *t = theta_liveCommentsHidden ? @"Comment list hidden" : @"Comment list visible";
-        [ThetaHelper showToastWithTitle:@"Live" subtitle:t icon:[UIImage systemImageNamed:@"bubble.left.and.bubble.right"] autoHide:2 openURL:nil];
+        NSString *t = zeus_liveCommentsHidden ? @"Comment list hidden" : @"Comment list visible";
+        [ZeusHelper showToastWithTitle:@"Live" subtitle:t icon:[UIImage systemImageNamed:@"bubble.left.and.bubble.right"] autoHide:2 openURL:nil];
     }
 }
 @end
 
-static void theta_attachHeartLongPress(UIView *v) {
-    if (!v || objc_getAssociatedObject(v, kThetaLiveHeartLPKey)) return;
-    UILongPressGestureRecognizer *g = [[UILongPressGestureRecognizer alloc] initWithTarget:[ThetaLiveCommentToggle shared] action:@selector(heartLongPress:)];
+static void zeus_attachHeartLongPress(UIView *v) {
+    if (!v || objc_getAssociatedObject(v, kZeusLiveHeartLPKey)) return;
+    UILongPressGestureRecognizer *g = [[UILongPressGestureRecognizer alloc] initWithTarget:[ZeusLiveCommentToggle shared] action:@selector(heartLongPress:)];
     g.minimumPressDuration = 0.5;
     g.cancelsTouchesInView = YES;
     [v addGestureRecognizer:g];
-    objc_setAssociatedObject(v, kThetaLiveHeartLPKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(v, kZeusLiveHeartLPKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static void (*orig_liveFooterLayout)(id, SEL);
@@ -98,24 +98,24 @@ static void hook_liveFooterLayout(id self, SEL _cmd) {
     Ivar iv = class_getInstanceVariable([self class], "_likeButton");
     if (!iv) return;
     UIView *btn = object_getIvar(self, iv);
-    if (btn) theta_attachHeartLongPress(btn);
+    if (btn) zeus_attachHeartLongPress(btn);
 }
 
 static void (*orig_liveCommentsAppear)(id, SEL, BOOL);
 static void hook_liveCommentsAppear(id self, SEL _cmd, BOOL anim) {
     orig_liveCommentsAppear(self, _cmd, anim);
-    theta_activeLiveCommentsVC = (UIViewController *)self;
-    theta_liveCommentsHidden = NO;
-    theta_applyLiveCommentsVisibility();
+    zeus_activeLiveCommentsVC = (UIViewController *)self;
+    zeus_liveCommentsHidden = NO;
+    zeus_applyLiveCommentsVisibility();
 }
 
 static void (*orig_liveCommentsDisappear)(id, SEL, BOOL);
 static void hook_liveCommentsDisappear(id self, SEL _cmd, BOOL anim) {
-    if (theta_activeLiveCommentsVC == (UIViewController *)self) theta_activeLiveCommentsVC = nil;
+    if (zeus_activeLiveCommentsVC == (UIViewController *)self) zeus_activeLiveCommentsVC = nil;
     orig_liveCommentsDisappear(self, _cmd, anim);
 }
 
-void THRegisterLiveBrowseTweaksHooks(void) {
+void ZURegisterLiveBrowseTweaksHooks(void) {
     Class feedback = objc_getClass("IGLiveFeedbackController");
     if (feedback) NullHookMessageEx(feedback, @selector(start), (void *)hook_liveFeedbackStart, &orig_liveFeedbackStart);
     Class footer = objc_getClass("IGLiveFooterButtonsView");

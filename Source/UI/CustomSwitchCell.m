@@ -1,15 +1,15 @@
 #import "Include/CustomSwitchCell.h"
-#import "Include/ThetaHelper.h"
-#import "Include/ThetaSwitch.h"
+#import "Include/ZeusHelper.h"
+#import "Include/ZeusSwitch.h"
 
 @implementation CustomSwitchCell
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
     self = [super initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuseIdentifier];
     if (self) {
-        self.settingSwitch = [[ThetaSwitch alloc] initWithFrame:CGRectZero];
+        self.settingSwitch = [[ZeusSwitch alloc] initWithFrame:CGRectZero];
         [self.contentView addSubview:self.settingSwitch];
         self.infoButton = [UIButton buttonWithType:UIButtonTypeInfoLight];
-        self.infoButton.tintColor = [ThetaHelper iotaPinkColor];
+        self.infoButton.tintColor = [ZeusHelper iotaPinkColor];
         [self.contentView addSubview:self.infoButton];
         self.selectionStyle = UITableViewCellSelectionStyleNone;
 

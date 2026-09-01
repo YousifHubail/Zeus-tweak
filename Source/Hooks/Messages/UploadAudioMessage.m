@@ -1,13 +1,13 @@
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-static NSURL *gThetaSelectedVideoURL;
-static CGFloat gThetaSelectedVideoDuration = 0.0;
-static BOOL gThetaExportInProgress = NO;
-static id gThetaComputedWaveform = nil; // IGDirectAudioWaveform built from selected audio
+static NSURL *gZeusSelectedVideoURL;
+static CGFloat gZeusSelectedVideoDuration = 0.0;
+static BOOL gZeusExportInProgress = NO;
+static id gZeusComputedWaveform = nil; // IGDirectAudioWaveform built from selected audio
 
 // Minimal interface for IG's waveform object
 @interface IGDirectAudioWaveform : NSObject
@@ -17,7 +17,7 @@ static id gThetaComputedWaveform = nil; // IGDirectAudioWaveform built from sele
 @end
 
 // Build an IGDirectAudioWaveform by sampling RMS loudness every `intervalSec` seconds
-static id ThetaBuildWaveformFromAudioURL(NSURL *audioURL, CGFloat intervalSec) {
+static id ZeusBuildWaveformFromAudioURL(NSURL *audioURL, CGFloat intervalSec) {
 	@autoreleasepool {
 		if (!audioURL) return nil;
 		
@@ -33,7 +33,7 @@ static id ThetaBuildWaveformFromAudioURL(NSURL *audioURL, CGFloat intervalSec) {
 		NSError *error = nil;
 		AVAssetReader *reader = [[AVAssetReader alloc] initWithAsset:asset error:&error];
 		if (error || !reader) {
-			NSLog(@"[Theta] Waveform reader init failed: %@", error);
+			NSLog(@"[Zeus] Waveform reader init failed: %@", error);
 			return nil;
 		}
 		
@@ -115,12 +115,12 @@ static id ThetaBuildWaveformFromAudioURL(NSURL *audioURL, CGFloat intervalSec) {
 		}
 		
 		if (reader.status == AVAssetReaderStatusFailed) {
-			NSLog(@"[Theta] Waveform reader failed: %@", reader.error);
+			NSLog(@"[Zeus] Waveform reader failed: %@", reader.error);
 		}
 		
 		Class Waveform = NSClassFromString(@"IGDirectAudioWaveform");
 		if (!Waveform) {
-			NSLog(@"[Theta] Waveform class not found");
+			NSLog(@"[Zeus] Waveform class not found");
 			return nil;
 		}
 		
@@ -131,7 +131,7 @@ static id ThetaBuildWaveformFromAudioURL(NSURL *audioURL, CGFloat intervalSec) {
 }
 
 // Cached selectors used when invoking original IMPs safely
-static inline SEL ThetaStartRecordingSel(void) {
+static inline SEL ZeusStartRecordingSel(void) {
 	static SEL s;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
@@ -140,7 +140,7 @@ static inline SEL ThetaStartRecordingSel(void) {
 	return s;
 }
 
-static inline SEL ThetaUploadAudioSel(void) {
+static inline SEL ZeusUploadAudioSel(void) {
 	static SEL s;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
@@ -149,7 +149,7 @@ static inline SEL ThetaUploadAudioSel(void) {
 	return s;
 }
 
-static inline SEL ThetaUploadAudioSelAI(void) {
+static inline SEL ZeusUploadAudioSelAI(void) {
 	static SEL s;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
@@ -158,7 +158,7 @@ static inline SEL ThetaUploadAudioSelAI(void) {
 	return s;
 }
 
-static inline SEL ThetaUploadAudioSelAIType(void) {
+static inline SEL ZeusUploadAudioSelAIType(void) {
 	static SEL s;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
@@ -169,7 +169,7 @@ static inline SEL ThetaUploadAudioSelAIType(void) {
 
 static void (*orig_voiceMessageButton)(id self, SEL _cmd, NSInteger entryPoint);
 
-@interface ThetaAudioPickerDelegate : NSObject <UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIDocumentPickerDelegate>
+@interface ZeusAudioPickerDelegate : NSObject <UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIDocumentPickerDelegate>
 @property (nonatomic, strong) NSURL *selectedMediaURL;
 @property (nonatomic, weak) id targetVoiceController;
 @property (nonatomic, assign) NSInteger savedEntryPoint;
@@ -182,24 +182,24 @@ static void hook_voiceMessageButton(id self, SEL _cmd, NSInteger entryPoint) {
 		return;
 	}
 	
-    [ThetaHelper showCustomAlertWithActions:@"✋ Woah! Hold up!" description:@"Do you want to upload an audio message or record a new one?" actions:@[
+    [ZeusHelper showCustomAlertWithActions:@"✋ Woah! Hold up!" description:@"Do you want to upload an audio message or record a new one?" actions:@[
         @{
             @"title": @"Upload from Camera Roll",
             @"handler": ^(id sender) {
                 // Show camera roll picker
 				dispatch_async(dispatch_get_main_queue(), ^{
-					ThetaAudioPickerDelegate *delegate = [ThetaAudioPickerDelegate shared];
+					ZeusAudioPickerDelegate *delegate = [ZeusAudioPickerDelegate shared];
 					delegate.targetVoiceController = self;
 					delegate.savedEntryPoint = entryPoint;
 					UIImagePickerController *picker = [UIImagePickerController new];
 					picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
 					picker.mediaTypes = [UIImagePickerController availableMediaTypesForSourceType:UIImagePickerControllerSourceTypePhotoLibrary];
 					picker.delegate = delegate;
-					UIViewController *topVC = [ThetaHelper topViewController];
+					UIViewController *topVC = [ZeusHelper topViewController];
 					if (topVC) {
 						[topVC presentViewController:picker animated:YES completion:nil];
 					} else {
-						NSLog(@"[Theta] Failed to present picker: topViewController is nil");
+						NSLog(@"[Zeus] Failed to present picker: topViewController is nil");
 					}
 				});
             }
@@ -208,7 +208,7 @@ static void hook_voiceMessageButton(id self, SEL _cmd, NSInteger entryPoint) {
 			@"title": @"Upload from Files",
 			@"handler": ^(id sender) {
 				dispatch_async(dispatch_get_main_queue(), ^{
-					ThetaAudioPickerDelegate *delegate = [ThetaAudioPickerDelegate shared];
+					ZeusAudioPickerDelegate *delegate = [ZeusAudioPickerDelegate shared];
 					delegate.targetVoiceController = self;
 					delegate.savedEntryPoint = entryPoint;
 					NSArray *docTypes = @[ @"public.mpeg-4-audio", @"public.mp3" ];
@@ -217,11 +217,11 @@ static void hook_voiceMessageButton(id self, SEL _cmd, NSInteger entryPoint) {
 					if ([picker respondsToSelector:@selector(setAllowsMultipleSelection:)]) {
 						picker.allowsMultipleSelection = NO;
 					}
-					UIViewController *topVC = [ThetaHelper topViewController];
+					UIViewController *topVC = [ZeusHelper topViewController];
 					if (topVC) {
 						[topVC presentViewController:picker animated:YES completion:nil];
 					} else {
-						NSLog(@"[Theta] Failed to present document picker: topViewController is nil");
+						NSLog(@"[Zeus] Failed to present document picker: topViewController is nil");
 					}
 				});
 			}
@@ -246,15 +246,15 @@ static void (*orig_uploadAudioMessage)(id self, SEL _cmd, id viewController, id 
 static void (*orig_uploadAudioMessage2)(id self, SEL _cmd, id viewController, id audioClipURL, id waveform, CGFloat duration, NSInteger entryPoint, id aiVoiceEffectApplied, NSInteger sendButtonTypeTapped);
 static void (*orig_uploadAudioMessage3)(id self, SEL _cmd, id viewController, id audioClipURL, id waveform, CGFloat duration, NSInteger entryPoint, id aiVoiceEffectApplied, id aiVoiceEffectType, NSInteger sendButtonTypeTapped);
 
-static void ThetaClearPickedAudioState(void) {
-	gThetaSelectedVideoURL = nil;
-	gThetaSelectedVideoDuration = 0.0;
-	gThetaComputedWaveform = nil;
+static void ZeusClearPickedAudioState(void) {
+	gZeusSelectedVideoURL = nil;
+	gZeusSelectedVideoDuration = 0.0;
+	gZeusComputedWaveform = nil;
 }
 
 // Try sending directly without toggling the microphone UI.
 // IG 441+ uses aiVoiceEffectType; never call a NULL orig IMP (that SIGKILLs with pc=0).
-static void ThetaDirectSendOnController(id target, NSInteger entryPoint, NSURL *url, id waveform, CGFloat duration, id aiVoiceEffectApplied) {
+static void ZeusDirectSendOnController(id target, NSInteger entryPoint, NSURL *url, id waveform, CGFloat duration, id aiVoiceEffectApplied) {
 	if (!target || !url) return;
 	dispatch_async(dispatch_get_main_queue(), ^{
 		id viewController = nil;
@@ -266,11 +266,11 @@ static void ThetaDirectSendOnController(id target, NSInteger entryPoint, NSURL *
 			} @catch (__unused id e) {}
 		}
 		NSInteger sendButtonType = 0;
-		NSLog(@"[Theta] Directly invoking upload with selected audio (bypassing mic UI).");
+		NSLog(@"[Zeus] Directly invoking upload with selected audio (bypassing mic UI).");
 
-		SEL selAIType = ThetaUploadAudioSelAIType();
-		SEL selAI = ThetaUploadAudioSelAI();
-		SEL selPlain = ThetaUploadAudioSel();
+		SEL selAIType = ZeusUploadAudioSelAIType();
+		SEL selAI = ZeusUploadAudioSelAI();
+		SEL selPlain = ZeusUploadAudioSel();
 		BOOL sent = NO;
 
 		if (orig_uploadAudioMessage3) {
@@ -297,14 +297,14 @@ static void ThetaDirectSendOnController(id target, NSInteger entryPoint, NSURL *
 		}
 
 		if (!sent) {
-			NSLog(@"[Theta] No voice-note upload selector on %@", [target class]);
-			[ThetaHelper showToastWithTitle:@"Couldn't send"
+			NSLog(@"[Zeus] No voice-note upload selector on %@", [target class]);
+			[ZeusHelper showToastWithTitle:@"Couldn't send"
 								  subtitle:@"Instagram's voice upload API changed."
-									  icon:[ThetaHelper imageFromEmojiString:@"⚠️" width:300]
+									  icon:[ZeusHelper imageFromEmojiString:@"⚠️" width:300]
 								  autoHide:3
 								   openURL:nil];
 		}
-		ThetaClearPickedAudioState();
+		ZeusClearPickedAudioState();
 	});
 }
 
@@ -316,15 +316,15 @@ static void hook_uploadAudioMessage(id self, SEL _cmd, id viewController, id aud
 	}
 
     // If we have a saved picked video, prefer it over incoming args
-    NSURL *useURL = gThetaSelectedVideoURL ?: audioClipURL;
-    CGFloat useDuration = gThetaSelectedVideoDuration > 0.0 ? gThetaSelectedVideoDuration : duration;
-	id useWaveform = gThetaComputedWaveform ?: waveform;
-    if (gThetaSelectedVideoURL) {
-		NSLog(@"[Theta] Hook using saved picked video: %@ (%.2fs)", gThetaSelectedVideoURL, gThetaSelectedVideoDuration);
+    NSURL *useURL = gZeusSelectedVideoURL ?: audioClipURL;
+    CGFloat useDuration = gZeusSelectedVideoDuration > 0.0 ? gZeusSelectedVideoDuration : duration;
+	id useWaveform = gZeusComputedWaveform ?: waveform;
+    if (gZeusSelectedVideoURL) {
+		NSLog(@"[Zeus] Hook using saved picked video: %@ (%.2fs)", gZeusSelectedVideoURL, gZeusSelectedVideoDuration);
     }
 	if (orig_uploadAudioMessage)
 		orig_uploadAudioMessage(self, _cmd, viewController, useURL, useWaveform, useDuration, entryPoint, sendButtonTypeTapped);
-	ThetaClearPickedAudioState();
+	ZeusClearPickedAudioState();
 }
 
 static void hook_uploadAudioMessage2(id self, SEL _cmd, id viewController, id audioClipURL, id waveform, CGFloat duration, NSInteger entryPoint, id aiVoiceEffectApplied, NSInteger sendButtonTypeTapped) {
@@ -335,15 +335,15 @@ static void hook_uploadAudioMessage2(id self, SEL _cmd, id viewController, id au
 	}
 
     // If we have a saved picked video, prefer it over incoming args
-    NSURL *useURL = gThetaSelectedVideoURL ?: audioClipURL;
-    CGFloat useDuration = gThetaSelectedVideoDuration > 0.0 ? gThetaSelectedVideoDuration : duration;
-	id useWaveform = gThetaComputedWaveform ?: waveform;
-    if (gThetaSelectedVideoURL) {
-		NSLog(@"[Theta] Hook using saved picked video: %@ (%.2fs)", gThetaSelectedVideoURL, gThetaSelectedVideoDuration);
+    NSURL *useURL = gZeusSelectedVideoURL ?: audioClipURL;
+    CGFloat useDuration = gZeusSelectedVideoDuration > 0.0 ? gZeusSelectedVideoDuration : duration;
+	id useWaveform = gZeusComputedWaveform ?: waveform;
+    if (gZeusSelectedVideoURL) {
+		NSLog(@"[Zeus] Hook using saved picked video: %@ (%.2fs)", gZeusSelectedVideoURL, gZeusSelectedVideoDuration);
     }
 	if (orig_uploadAudioMessage2)
 		orig_uploadAudioMessage2(self, _cmd, viewController, useURL, useWaveform, useDuration, entryPoint, aiVoiceEffectApplied, sendButtonTypeTapped);
-	ThetaClearPickedAudioState();
+	ZeusClearPickedAudioState();
 }
 
 static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id audioClipURL, id waveform, CGFloat duration, NSInteger entryPoint, id aiVoiceEffectApplied, id aiVoiceEffectType, NSInteger sendButtonTypeTapped) {
@@ -353,24 +353,24 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 		return;
 	}
 
-	NSURL *useURL = gThetaSelectedVideoURL ?: audioClipURL;
-	CGFloat useDuration = gThetaSelectedVideoDuration > 0.0 ? gThetaSelectedVideoDuration : duration;
-	id useWaveform = gThetaComputedWaveform ?: waveform;
-	if (gThetaSelectedVideoURL) {
-		NSLog(@"[Theta] Hook using saved picked video: %@ (%.2fs)", gThetaSelectedVideoURL, gThetaSelectedVideoDuration);
+	NSURL *useURL = gZeusSelectedVideoURL ?: audioClipURL;
+	CGFloat useDuration = gZeusSelectedVideoDuration > 0.0 ? gZeusSelectedVideoDuration : duration;
+	id useWaveform = gZeusComputedWaveform ?: waveform;
+	if (gZeusSelectedVideoURL) {
+		NSLog(@"[Zeus] Hook using saved picked video: %@ (%.2fs)", gZeusSelectedVideoURL, gZeusSelectedVideoDuration);
 	}
 	if (orig_uploadAudioMessage3)
 		orig_uploadAudioMessage3(self, _cmd, viewController, useURL, useWaveform, useDuration, entryPoint, aiVoiceEffectApplied, aiVoiceEffectType, sendButtonTypeTapped);
-	ThetaClearPickedAudioState();
+	ZeusClearPickedAudioState();
 }
 
-@implementation ThetaAudioPickerDelegate
+@implementation ZeusAudioPickerDelegate
 
 + (instancetype)shared {
-	static ThetaAudioPickerDelegate *shared;
+	static ZeusAudioPickerDelegate *shared;
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
-		shared = [ThetaAudioPickerDelegate new];
+		shared = [ZeusAudioPickerDelegate new];
 	});
 	return shared;
 }
@@ -385,29 +385,29 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 	self.selectedMediaURL = videoURL;
 
 	if (videoURL) {
-		NSLog(@"[Theta] Selected video. type=%@ url=%@", mediaType, videoURL);
+		NSLog(@"[Zeus] Selected video. type=%@ url=%@", mediaType, videoURL);
 	} else {
-		NSLog(@"[Theta] Selected non-video media. type=%@", mediaType);
+		NSLog(@"[Zeus] Selected non-video media. type=%@", mediaType);
 	}
 
 	[picker dismissViewControllerAnimated:YES completion:^{
 		if (!videoURL) {
-			[ThetaHelper showToastWithTitle:@"Selected" subtitle:@"Media picked from library." icon:[ThetaHelper imageFromEmojiString:@"🎵" width:300] autoHide:2 openURL:nil];
+			[ZeusHelper showToastWithTitle:@"Selected" subtitle:@"Media picked from library." icon:[ZeusHelper imageFromEmojiString:@"🎵" width:300] autoHide:2 openURL:nil];
 			return;
 		}
 
 		// Guard against concurrent exports
-		if (gThetaExportInProgress) {
-			NSLog(@"[Theta] Export already in progress; ignoring new selection");
+		if (gZeusExportInProgress) {
+			NSLog(@"[Zeus] Export already in progress; ignoring new selection");
 			return;
 		}
-		gThetaExportInProgress = YES;
+		gZeusExportInProgress = YES;
 
 		// Prepare export of audio track as MP4 (audio-only). Fallback to M4A if needed.
 		AVURLAsset *asset = [AVURLAsset URLAssetWithURL:videoURL options:nil];
 		CGFloat durationSeconds = asset ? (CGFloat)CMTimeGetSeconds(asset.duration) : 0.0f;
 		NSURL *tempDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
-		NSString *mp4Name = [NSString stringWithFormat:@"theta_upload_%@.mp4", [[NSUUID UUID] UUIDString]];
+		NSString *mp4Name = [NSString stringWithFormat:@"zeus_upload_%@.mp4", [[NSUUID UUID] UUIDString]];
 		NSURL *mp4URL = [tempDirURL URLByAppendingPathComponent:mp4Name];
 		[[NSFileManager defaultManager] removeItemAtURL:mp4URL error:nil];
 
@@ -427,24 +427,24 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 
 		[exporter exportAsynchronouslyWithCompletionHandler:^{
 			if (exporter.status == AVAssetExportSessionStatusCompleted) {
-				gThetaSelectedVideoURL = mp4URL;
-				gThetaSelectedVideoDuration = durationSeconds;
-				NSLog(@"[Theta] Exported audio-only MP4 to %@ (%.2fs)", mp4URL, durationSeconds);
+				gZeusSelectedVideoURL = mp4URL;
+				gZeusSelectedVideoDuration = durationSeconds;
+				NSLog(@"[Zeus] Exported audio-only MP4 to %@ (%.2fs)", mp4URL, durationSeconds);
 				
 				// Build waveform then send directly, bypassing mic UI
 				dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-					id built = ThetaBuildWaveformFromAudioURL(mp4URL, 0.1);
-					gThetaComputedWaveform = built;
+					id built = ZeusBuildWaveformFromAudioURL(mp4URL, 0.1);
+					gZeusComputedWaveform = built;
 					id target = self.targetVoiceController;
 					if (target) {
-						ThetaDirectSendOnController(target, self.savedEntryPoint, mp4URL, built, durationSeconds, nil);
+						ZeusDirectSendOnController(target, self.savedEntryPoint, mp4URL, built, durationSeconds, nil);
 					}
-					gThetaExportInProgress = NO;
+					gZeusExportInProgress = NO;
 				});
 			} else {
-				NSLog(@"[Theta] MP4 export failed: status=%ld error=%@ — falling back to M4A", (long)exporter.status, exporter.error);
+				NSLog(@"[Zeus] MP4 export failed: status=%ld error=%@ — falling back to M4A", (long)exporter.status, exporter.error);
 				// Fallback to M4A
-				NSString *m4aName = [NSString stringWithFormat:@"theta_upload_%@.m4a", [[NSUUID UUID] UUIDString]];
+				NSString *m4aName = [NSString stringWithFormat:@"zeus_upload_%@.m4a", [[NSUUID UUID] UUIDString]];
 				NSURL *m4aURL = [tempDirURL URLByAppendingPathComponent:m4aName];
 				[[NSFileManager defaultManager] removeItemAtURL:m4aURL error:nil];
 				AVAssetExportSession *fallback = [[AVAssetExportSession alloc] initWithAsset:asset presetName:AVAssetExportPresetAppleM4A];
@@ -453,36 +453,36 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 				fallback.shouldOptimizeForNetworkUse = YES;
 				[fallback exportAsynchronouslyWithCompletionHandler:^{
 					if (fallback.status == AVAssetExportSessionStatusCompleted) {
-						gThetaSelectedVideoURL = m4aURL;
-						gThetaSelectedVideoDuration = durationSeconds;
-						NSLog(@"[Theta] Exported audio to M4A %@ (%.2fs)", m4aURL, durationSeconds);
+						gZeusSelectedVideoURL = m4aURL;
+						gZeusSelectedVideoDuration = durationSeconds;
+						NSLog(@"[Zeus] Exported audio to M4A %@ (%.2fs)", m4aURL, durationSeconds);
 						
 						// Build waveform then send directly, bypassing mic UI
 						dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-							id built = ThetaBuildWaveformFromAudioURL(m4aURL, 0.1);
-							gThetaComputedWaveform = built;
+							id built = ZeusBuildWaveformFromAudioURL(m4aURL, 0.1);
+							gZeusComputedWaveform = built;
 							id target = self.targetVoiceController;
 							if (target) {
-								ThetaDirectSendOnController(target, self.savedEntryPoint, m4aURL, built, durationSeconds, nil);
+								ZeusDirectSendOnController(target, self.savedEntryPoint, m4aURL, built, durationSeconds, nil);
 							}
-							gThetaExportInProgress = NO;
+							gZeusExportInProgress = NO;
 						});
 					} else {
-						NSLog(@"[Theta] Audio export fallback failed: status=%ld error=%@", (long)fallback.status, fallback.error);
-						gThetaExportInProgress = NO;
+						NSLog(@"[Zeus] Audio export fallback failed: status=%ld error=%@", (long)fallback.status, fallback.error);
+						gZeusExportInProgress = NO;
 					}
 				}];
 			}
 		}];
 
-		[ThetaHelper showToastWithTitle:@"Selected" subtitle:@"Exporting audio..." icon:[ThetaHelper imageFromEmojiString:@"🎵" width:300] autoHide:2 openURL:nil];
+		[ZeusHelper showToastWithTitle:@"Selected" subtitle:@"Exporting audio..." icon:[ZeusHelper imageFromEmojiString:@"🎵" width:300] autoHide:2 openURL:nil];
 	}];
 }
 
 @end
 
 // Files picker support (MP3/M4A)
-@implementation ThetaAudioPickerDelegate (ThetaFilesPicker)
+@implementation ZeusAudioPickerDelegate (ZeusFilesPicker)
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
 	NSURL *docURL = urls.firstObject;
@@ -491,21 +491,21 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 	BOOL shouldStop = [docURL startAccessingSecurityScopedResource];
 	
 	dispatch_async(dispatch_get_main_queue(), ^{
-		[ThetaHelper showToastWithTitle:@"Selected" subtitle:@"Importing audio..." icon:[ThetaHelper imageFromEmojiString:@"🎵" width:300] autoHide:2 openURL:nil];
+		[ZeusHelper showToastWithTitle:@"Selected" subtitle:@"Importing audio..." icon:[ZeusHelper imageFromEmojiString:@"🎵" width:300] autoHide:2 openURL:nil];
 	});
 	
 	// Guard against concurrent exports
-	if (gThetaExportInProgress) {
-		NSLog(@"[Theta] Export already in progress; ignoring new Files selection");
+	if (gZeusExportInProgress) {
+		NSLog(@"[Zeus] Export already in progress; ignoring new Files selection");
 		if (shouldStop) [docURL stopAccessingSecurityScopedResource];
 		return;
 	}
-	gThetaExportInProgress = YES;
+	gZeusExportInProgress = YES;
 	
 	AVURLAsset *asset = [AVURLAsset URLAssetWithURL:docURL options:nil];
 	CGFloat durationSeconds = asset ? (CGFloat)CMTimeGetSeconds(asset.duration) : 0.0f;
 	NSURL *tempDirURL = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
-	NSString *m4aName = [NSString stringWithFormat:@"theta_upload_%@.m4a", [[NSUUID UUID] UUIDString]];
+	NSString *m4aName = [NSString stringWithFormat:@"zeus_upload_%@.m4a", [[NSUUID UUID] UUIDString]];
 	NSURL *m4aURL = [tempDirURL URLByAppendingPathComponent:m4aName];
 	[[NSFileManager defaultManager] removeItemAtURL:m4aURL error:nil];
 	
@@ -514,24 +514,24 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 	if ([ext isEqualToString:@"m4a"]) {
 		NSError *copyErr = nil;
 		if (![[NSFileManager defaultManager] copyItemAtURL:docURL toURL:m4aURL error:&copyErr]) {
-			NSLog(@"[Theta] Failed to copy m4a from Files: %@", copyErr);
+			NSLog(@"[Zeus] Failed to copy m4a from Files: %@", copyErr);
 		}
 	}
 	
 	void (^finishWithURL)(NSURL *) = ^(NSURL *finalURL) {
-		gThetaSelectedVideoURL = finalURL;
-		gThetaSelectedVideoDuration = durationSeconds;
-		NSLog(@"[Theta] Prepared audio from Files %@ (%.2fs)", finalURL, durationSeconds);
+		gZeusSelectedVideoURL = finalURL;
+		gZeusSelectedVideoDuration = durationSeconds;
+		NSLog(@"[Zeus] Prepared audio from Files %@ (%.2fs)", finalURL, durationSeconds);
 		
 		// Build waveform then send directly, bypassing mic UI
 		dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-			id built = ThetaBuildWaveformFromAudioURL(finalURL, 0.1);
-			gThetaComputedWaveform = built;
+			id built = ZeusBuildWaveformFromAudioURL(finalURL, 0.1);
+			gZeusComputedWaveform = built;
 			id target = self.targetVoiceController;
 			if (target) {
-				ThetaDirectSendOnController(target, self.savedEntryPoint, finalURL, built, durationSeconds, nil);
+				ZeusDirectSendOnController(target, self.savedEntryPoint, finalURL, built, durationSeconds, nil);
 			}
-			gThetaExportInProgress = NO;
+			gZeusExportInProgress = NO;
 			if (shouldStop) [docURL stopAccessingSecurityScopedResource];
 		});
 	};
@@ -551,7 +551,7 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 		if (exporter.status == AVAssetExportSessionStatusCompleted) {
 			finishWithURL(m4aURL);
 		} else {
-			NSLog(@"[Theta] Files audio export to M4A failed: status=%ld error=%@", (long)exporter.status, exporter.error);
+			NSLog(@"[Zeus] Files audio export to M4A failed: status=%ld error=%@", (long)exporter.status, exporter.error);
 			// As a last resort, try to use original URL directly
 			finishWithURL(docURL);
 		}
@@ -564,15 +564,15 @@ static void hook_uploadAudioMessage3(id self, SEL _cmd, id viewController, id au
 
 @end
 
-void THRegisterUploadAudioMessageHooks(void) {
+void ZURegisterUploadAudioMessageHooks(void) {
     Class voiceCtl = objc_getClass("IGDirectThreadViewVoiceController");
     if (!voiceCtl) return;
 
     NullHookMessageIfPresent(voiceCtl, @selector(startRecordingWithButtonTapFromEntryPoint:), (void *)hook_voiceMessageButton, &orig_voiceMessageButton);
 
-    SEL recordSelAIType = ThetaUploadAudioSelAIType();
-    SEL recordSelAI = ThetaUploadAudioSelAI();
-    SEL recordSelPlain = ThetaUploadAudioSel();
+    SEL recordSelAIType = ZeusUploadAudioSelAIType();
+    SEL recordSelAI = ZeusUploadAudioSelAI();
+    SEL recordSelPlain = ZeusUploadAudioSel();
     if (class_getInstanceMethod(voiceCtl, recordSelAIType))
         NullHookMessageIfPresent(voiceCtl, recordSelAIType, (void *)hook_uploadAudioMessage3, &orig_uploadAudioMessage3);
     else if (class_getInstanceMethod(voiceCtl, recordSelAI))

@@ -1,26 +1,26 @@
-static char kThetaSortGridLongPressOnceKey;
-static char kThetaSortGridAscendingKey;
-static char kThetaSortApplyOnceKey;
-static char kThetaSortLastToggleTimeKey;
-static char kThetaOrigObjectsIMPKey;
-static NSArray *theta_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapter);
+static char kZeusSortGridLongPressOnceKey;
+static char kZeusSortGridAscendingKey;
+static char kZeusSortApplyOnceKey;
+static char kZeusSortLastToggleTimeKey;
+static char kZeusOrigObjectsIMPKey;
+static NSArray *zeus_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapter);
 
-static void theta_installObjectsHookIfNeeded(id dataSource) {
+static void zeus_installObjectsHookIfNeeded(id dataSource) {
     if (!dataSource) return;
     Class cls = [dataSource class];
     if (!cls) return;
-    if (objc_getAssociatedObject(cls, &kThetaOrigObjectsIMPKey)) {
+    if (objc_getAssociatedObject(cls, &kZeusOrigObjectsIMPKey)) {
         return; // already installed
     }
     SEL sel = NSSelectorFromString(@"objectsForListAdapter:");
     Method m = class_getInstanceMethod(cls, sel);
     if (!m) return;
     IMP orig = method_getImplementation(m);
-    objc_setAssociatedObject(cls, &kThetaOrigObjectsIMPKey, [NSValue valueWithPointer:(const void *)orig], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    class_replaceMethod(cls, sel, (IMP)theta_sortedObjectsForListAdapter, method_getTypeEncoding(m));
+    objc_setAssociatedObject(cls, &kZeusOrigObjectsIMPKey, [NSValue valueWithPointer:(const void *)orig], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    class_replaceMethod(cls, sel, (IMP)zeus_sortedObjectsForListAdapter, method_getTypeEncoding(m));
 }
 
-static NSTimeInterval theta_timestampForItem(id item) {
+static NSTimeInterval zeus_timestampForItem(id item) {
     @try {
         id taken = [item valueForKeyPath:@"media.takenAtDate"];
         if ([taken isKindOfClass:[NSDate class]]) return [(NSDate *)taken timeIntervalSince1970];
@@ -55,8 +55,8 @@ static NSTimeInterval theta_timestampForItem(id item) {
     return 0;
 }
 
-static NSArray *theta_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapter) {
-    NSValue *v = objc_getAssociatedObject([selfObj class], &kThetaOrigObjectsIMPKey);
+static NSArray *zeus_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapter) {
+    NSValue *v = objc_getAssociatedObject([selfObj class], &kZeusOrigObjectsIMPKey);
     IMP orig = (IMP)[v pointerValue];
     NSArray *objects = nil;
     if (orig) {
@@ -65,14 +65,14 @@ static NSArray *theta_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapt
     }
     if (![objects isKindOfClass:[NSArray class]] || objects.count == 0) return objects;
 
-    NSNumber *ascNum = objc_getAssociatedObject(adapter, &kThetaSortGridAscendingKey);
+    NSNumber *ascNum = objc_getAssociatedObject(adapter, &kZeusSortGridAscendingKey);
     if (!ascNum) return objects;
     BOOL ascending = ascNum.boolValue;
 
     NSUInteger count = objects.count;
     NSMutableArray<NSNumber *> *times = [NSMutableArray arrayWithCapacity:count];
     for (id obj in objects) {
-        [times addObject:@(theta_timestampForItem(obj))];
+        [times addObject:@(zeus_timestampForItem(obj))];
     }
     NSMutableString *sampleLog = [NSMutableString stringWithString:@"["]; 
     NSUInteger sample = MIN((NSUInteger)6, count);
@@ -88,7 +88,7 @@ static NSArray *theta_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapt
     NSMutableArray<NSNumber *> *sortablePositions = [NSMutableArray array];
     for (NSUInteger i = 0; i < objects.count; i++) {
         id obj = objects[i];
-        NSTimeInterval ts = theta_timestampForItem(obj);
+        NSTimeInterval ts = zeus_timestampForItem(obj);
         if (ts > 0) {
             [sortableObjects addObject:obj];
             [sortablePositions addObject:@(i)];
@@ -101,8 +101,8 @@ static NSArray *theta_sortedObjectsForListAdapter(id selfObj, SEL _cmd, id adapt
     }
 
     [sortableObjects sortUsingComparator:^NSComparisonResult(id a, id b) {
-        NSTimeInterval tA = theta_timestampForItem(a);
-        NSTimeInterval tB = theta_timestampForItem(b);
+        NSTimeInterval tA = zeus_timestampForItem(a);
+        NSTimeInterval tB = zeus_timestampForItem(b);
         if (ascending) {
             if (tA < tB) return NSOrderedAscending;
             if (tA > tB) return NSOrderedDescending;
@@ -133,7 +133,7 @@ static void hook_sortUserPostsGrid(id self, SEL _cmd) {
     }
     if (![accessibilityLabel isKindOfClass:[NSString class]]) return;
     if ([accessibilityLabel isEqualToString:@"Grid"]) {
-        NSNumber *alreadyAdded = objc_getAssociatedObject(self, &kThetaSortGridLongPressOnceKey);
+        NSNumber *alreadyAdded = objc_getAssociatedObject(self, &kZeusSortGridLongPressOnceKey);
         if ([alreadyAdded boolValue]) return;
 
         UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] init];
@@ -142,14 +142,14 @@ static void hook_sortUserPostsGrid(id self, SEL _cmd) {
         __weak typeof(self) weakSelf = self;
         longPress.actionBlock = ^(UIGestureRecognizer *recognizer) {
             if (recognizer.state != UIGestureRecognizerStateBegan) return;
-            NSNumber *lastTsNum = objc_getAssociatedObject(self, &kThetaSortLastToggleTimeKey);
+            NSNumber *lastTsNum = objc_getAssociatedObject(self, &kZeusSortLastToggleTimeKey);
             CFAbsoluteTime nowTs = CFAbsoluteTimeGetCurrent();
             if (lastTsNum && (nowTs - lastTsNum.doubleValue) < 0.8) return;
-            objc_setAssociatedObject(self, &kThetaSortLastToggleTimeKey, @(nowTs), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(self, &kZeusSortLastToggleTimeKey, @(nowTs), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             id strongSelf = weakSelf;
             if (!strongSelf || ![strongSelf isKindOfClass:[UIView class]]) return;
 
-            UIViewController *nearestViewController = [ThetaHelper nearestViewController:(UIView *)strongSelf];
+            UIViewController *nearestViewController = [ZeusHelper nearestViewController:(UIView *)strongSelf];
             if (![nearestViewController isKindOfClass:NSClassFromString(@"IGProfileViewController")]) {
                 NSLog(@"[SortUserGridPosts] Not on profile view controller; aborting");
                 return;
@@ -217,7 +217,7 @@ static void hook_sortUserPostsGrid(id self, SEL _cmd) {
             NSString *detected = currentAscending ? @"ascending (oldest->newest)" : (currentDescending ? @"descending (newest->oldest)" : @"unknown/equal");
             NSLog(@"[SortUserGridPosts] Detected current order: %@", detected);
 
-            NSNumber *storedAscending = objc_getAssociatedObject(collectionView, &kThetaSortGridAscendingKey);
+            NSNumber *storedAscending = objc_getAssociatedObject(collectionView, &kZeusSortGridAscendingKey);
             BOOL targetAscending;
             if (storedAscending != nil) {
                 targetAscending = !storedAscending.boolValue;
@@ -308,9 +308,9 @@ static void hook_sortUserPostsGrid(id self, SEL _cmd) {
                             id dataSource = nil;
                             @try { dataSource = [adapter valueForKey:@"dataSource"]; } @catch (__unused NSException *e) {}
                             if (dataSource) {
-                                theta_installObjectsHookIfNeeded(dataSource);
-                                        objc_setAssociatedObject(adapter, &kThetaSortGridAscendingKey, @(targetAscending), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-                                        objc_setAssociatedObject(adapter, &kThetaSortApplyOnceKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                                zeus_installObjectsHookIfNeeded(dataSource);
+                                        objc_setAssociatedObject(adapter, &kZeusSortGridAscendingKey, @(targetAscending), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                                        objc_setAssociatedObject(adapter, &kZeusSortApplyOnceKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
                                 NSLog(@"[SortUserGridPosts] Installed objectsForListAdapter: hook and set ascending=%@", targetAscending ? @"YES" : @"NO");
                             }
                             tryAdapterReload(adapter);
@@ -342,15 +342,15 @@ static void hook_sortUserPostsGrid(id self, SEL _cmd) {
                 NSLog(@"[SortUserGridPosts] Exception while reordering data source: %@", exception);
             }
 
-            objc_setAssociatedObject(collectionView, &kThetaSortGridAscendingKey, @(targetAscending), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(collectionView, &kZeusSortGridAscendingKey, @(targetAscending), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             NSLog(@"[SortUserGridPosts] Stored order flag set to %@", targetAscending ? @"ascending" : @"descending");
         };
         [(UIView *)self addGestureRecognizer:longPress];
 
-        objc_setAssociatedObject(self, &kThetaSortGridLongPressOnceKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(self, &kZeusSortGridLongPressOnceKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
 }
 
-void THRegisterSortUserGridPostsHooks(void) {
+void ZURegisterSortUserGridPostsHooks(void) {
     NullHookMessageIfPresent([UICollectionView class], @selector(layoutSubviews), (void *)hook_sortUserPostsGrid, (void **)&orig_sortUserPostsGrid);
 }

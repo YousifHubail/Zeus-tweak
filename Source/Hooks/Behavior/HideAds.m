@@ -1,4 +1,4 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 
 static NSArray *removeAdsItemsInList(NSArray *list) {
     if (!list) {
@@ -55,7 +55,7 @@ static NSArray *hook_hideAds(id self, SEL _cmd, id arg1) {
         if (disableAds) {
             result = removeAdsItemsInList(result);
         }
-        return ThetaApplyHideFeedFiltering(result ?: @[], YES);
+        return ZeusApplyHideFeedFiltering(result ?: @[], YES);
     } @catch (NSException *exception) {
         NSLog(@"Error in hideAds hook: %@", exception);
         return orig_hideAds(self, _cmd, arg1);
@@ -220,7 +220,7 @@ static void hook_hideAds5(id self, SEL _cmd, id adItem, NSInteger overlayStyle, 
     [self removeFromSuperview];
 }
 
-void THRegisterHideAdsCoreHooks(void) {
+void ZURegisterHideAdsCoreHooks(void) {
     NullHookMessageIfPresent(objc_getClass("IGMainFeedListAdapterDataSource"), @selector(objectsForListAdapter:), (void *)hook_hideAds, &orig_hideAds);
     NullHookMessageIfPresent(objc_getClass("IGStoryAdsResponseParser"), @selector(parsedObjectFromResponse:), (void *)hook_hideAds2, &orig_hideAds2);
     NullHookMessageIfPresent(objc_getClass("IGSundialAdsResponseParser"), @selector(parsedObjectFromResponse:), (void *)hook_hideAds4, &orig_hideAds4);
@@ -228,7 +228,7 @@ void THRegisterHideAdsCoreHooks(void) {
     NullHookMessageIfPresent(objc_getClass("IGDiscoveryGridAdNoCTAOverlayView"), @selector(configureWithAdItem:overlayViewStyle:ctaEnabled:delegate:surfaceType:analyticsModule:labelAlignment:), (void *)hook_hideAds5, &orig_hideAds5);
 }
 
-void THRegisterHideSuggestedReelsHooks(void) {
+void ZURegisterHideSuggestedReelsHooks(void) {
     NullHookMessageIfPresent(objc_getClass("IGStoryTrayCollectionViewCell"), @selector(layoutSubviews), (void *)hook_hideSuggestedReels, &orig_hideSuggestedReels);
     NullHookMessageIfPresent(objc_getClass("IGStoryTraySectionHeaderCell"), @selector(layoutSubviews), (void *)hook_hideSuggestedReels2, &orig_hideSuggestedReels2);
     NullHookMessageIfPresent(objc_getClass("IGFeedGroupHeaderCell"), @selector(layoutSubviews), (void *)hook_hideSuggestedReels3, &orig_hideSuggestedReels3);

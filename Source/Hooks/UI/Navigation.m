@@ -1,10 +1,10 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
 // MARK: - Helpers
 
-static NSString *THTabIntentForLabel(NSString *label) {
+static NSString *ZUTabIntentForLabel(NSString *label) {
     if (!label.length) return nil;
     NSString *lower = label.lowercaseString;
     if ([lower containsString:@"feed"] || [lower isEqualToString:@"home"]) return @"FEED";
@@ -15,7 +15,7 @@ static NSString *THTabIntentForLabel(NSString *label) {
     return nil;
 }
 
-static BOOL THShouldHideTabByIntent(NSString *intent) {
+static BOOL ZUShouldHideTabByIntent(NSString *intent) {
     if (!intent) return NO;
     if ([intent isEqualToString:@"FEED"]   && ENABLED(@"Hide Feed Tab"))     return YES;
     if ([intent isEqualToString:@"CLIPS"]  && ENABLED(@"Hide Reels Tab"))    return YES;
@@ -24,13 +24,13 @@ static BOOL THShouldHideTabByIntent(NSString *intent) {
     return NO;
 }
 
-static BOOL THShouldHideTabForSurface(id surface) {
+static BOOL ZUShouldHideTabForSurface(id surface) {
     if (!surface) return NO;
     NSString *intent = nil;
     @try {
         intent = [surface performSelector:@selector(tabStringFromSurfaceIntent)];
     } @catch (__unused NSException *e) {}
-    return THShouldHideTabByIntent(intent);
+    return ZUShouldHideTabByIntent(intent);
 }
 
 // MARK: - Tab Icon Ordering
@@ -86,7 +86,7 @@ static void hook_viewWillAppear_tabBar(id self, SEL _cmd, BOOL animated) {
     }
 }
 
-void THRegisterNavigationHooks(void) {
+void ZURegisterNavigationHooks(void) {
     // _TtC18IGNavConfiguration18IGNavConfiguration is the Swift class name
     Class navConfig = objc_getClass("_TtC18IGNavConfiguration18IGNavConfiguration");
     if (navConfig) {

@@ -7,6 +7,6 @@ static void hook_storyAutoAdvance(id self, SEL _cmd, NSInteger arg1) {
     return orig_storyAutoAdvance(self, _cmd, arg1);
 }
 
-void THRegisterStoryAutoAdvanceHooks(void) {
+void ZURegisterStoryAutoAdvanceHooks(void) {
     NullHookMessageEx(objc_getClass("IGStoryFullscreenSectionController"), @selector(advanceToNextItemWithNavigationAction:), (void *)hook_storyAutoAdvance, &orig_storyAutoAdvance);
 }

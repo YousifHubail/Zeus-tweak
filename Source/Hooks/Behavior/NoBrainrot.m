@@ -7,6 +7,6 @@ static void hook_hideBrainBot(IGUnifiedVideoCollectionView *self, SEL _cmd) {
     }
 }
 
-void THRegisterNoBrainrotHooks(void) {
+void ZURegisterNoBrainrotHooks(void) {
     NullHookMessageEx(objc_getClass("IGUnifiedVideoCollectionView"), @selector(didMoveToWindow), (void *)hook_hideBrainBot, &orig_hideBrainBot);
 }

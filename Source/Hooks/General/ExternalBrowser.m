@@ -1,9 +1,9 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
 // Common tracking parameters used by Instagram and advertising networks
-static NSSet *THTrackingParamSet(void) {
+static NSSet *ZUTrackingParamSet(void) {
     static NSSet *s;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -17,7 +17,7 @@ static NSSet *THTrackingParamSet(void) {
 }
 
 // Unwrap l.instagram.com redirects and strip tracking params
-static NSURL *THCleanBrowserURL(NSURL *url) {
+static NSURL *ZUCleanBrowserURL(NSURL *url) {
     if (!url) return url;
 
     NSString *urlStr = url.absoluteString;
@@ -41,7 +41,7 @@ static NSURL *THCleanBrowserURL(NSURL *url) {
 
     NSURLComponents *comps = [NSURLComponents componentsWithString:urlStr];
     if (comps.queryItems.count) {
-        NSSet *tracking = THTrackingParamSet();
+        NSSet *tracking = ZUTrackingParamSet();
         NSMutableArray *clean = [NSMutableArray array];
         for (NSURLQueryItem *q in comps.queryItems) {
             if (![tracking containsObject:q.name]) [clean addObject:q];
@@ -62,7 +62,7 @@ static void hook_viewWillAppear_Browser(id self, SEL _cmd, BOOL animated) {
         NSURL *url = req.URL;
 
         if (url && ENABLED(@"Open Links in External Browser")) {
-            NSURL *cleaned = THCleanBrowserURL(url);
+            NSURL *cleaned = ZUCleanBrowserURL(url);
             [[UIApplication sharedApplication] openURL:cleaned options:@{} completionHandler:nil];
             [(UIViewController *)self dismissViewControllerAnimated:NO completion:nil];
             return;
@@ -70,7 +70,7 @@ static void hook_viewWillAppear_Browser(id self, SEL _cmd, BOOL animated) {
 
         // Strip tracking params in the in-app browser too
         if (url && ENABLED(@"Strip Tracking from Links") && urlIvar) {
-            NSURL *cleaned = THCleanBrowserURL(url);
+            NSURL *cleaned = ZUCleanBrowserURL(url);
             if (![cleaned isEqual:url]) {
                 NSURLRequest *cleanReq = [NSURLRequest requestWithURL:cleaned];
                 object_setIvar(session, urlIvar, cleanReq);
@@ -81,7 +81,7 @@ static void hook_viewWillAppear_Browser(id self, SEL _cmd, BOOL animated) {
     orig_viewWillAppear_Browser(self, _cmd, animated);
 }
 
-void THRegisterExternalBrowserHooks(void) {
+void ZURegisterExternalBrowserHooks(void) {
     Class cls = objc_getClass("IGBrowserNavigationController");
     NullHookMessageEx(cls, @selector(viewWillAppear:), (void *)hook_viewWillAppear_Browser, &orig_viewWillAppear_Browser);
 }

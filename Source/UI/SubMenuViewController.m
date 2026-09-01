@@ -1,10 +1,11 @@
 #import "Include/SubMenuViewController.h"
+#import "Include/ZeusTheme.h"
 #import "Include/CustomSwitchCell.h"
 #import "Include/CustomToastView.h"
 #import "Include/InstagramHeaders.h"
 #import <AudioToolbox/AudioToolbox.h>
 #import <LocalAuthentication/LocalAuthentication.h>
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 
 #define ENABLED(setting) [[NSUserDefaults standardUserDefaults] boolForKey:[NSString stringWithFormat:@"%@_Enabled", setting]]
 
@@ -29,6 +30,12 @@ static inline BOOL isBiometricOrPasscodeSet() {
 @implementation SubMenuViewController
 - (void)viewDidLoad {
     [super viewDidLoad];
+    // Repaint in place when the theme changes, so the picker does not
+    // require backing out and reopening settings to see the result.
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(zeusThemeDidChange)
+                                                 name:ZeusThemeDidChangeNotification
+                                               object:nil];
 
     CGFloat spacerHeight = 10.0;
     UIView *spacer = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, spacerHeight)];
@@ -40,6 +47,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
     [self.tableView registerClass:[CustomSwitchCell class] forCellReuseIdentifier:@"SwitchCell"];
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     self.tableView.estimatedRowHeight = 80.0;
+    [ZeusTheme applyToTableView:self.tableView navigationController:self.navigationController];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(refreshSettingsOnForeground)
@@ -48,7 +56,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
 
     if (!self.settings) {
         self.settings = @[
-            @{@"title": @"Issue Loading Settings", @"detail": @"Please contact Kanji (@objc_msgSend) on Discord if you are seeing this message."},
+            @{@"title": @"Issue Loading Settings", @"detail": @"Please contact nijjermind on Discord if you are seeing this message."},
         ];
     }
 }
@@ -180,6 +188,17 @@ static inline BOOL isBiometricOrPasscodeSet() {
 	return MAX(minHeight, total);
 }
 
+// One choke point for cell theming: catches every cell type on the screen
+// without touching the individual cell factories.
+- (void)zeusThemeDidChange {
+    [ZeusTheme applyToTableView:self.tableView navigationController:self.navigationController];
+    [self.tableView reloadData];
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    [ZeusTheme decorateCell:cell];
+}
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     NSDictionary *settingDict = self.settings[indexPath.row];
     NSString *settingTitle = settingDict[@"title"] ?: settingDict;
@@ -267,9 +286,9 @@ static inline BOOL isBiometricOrPasscodeSet() {
         }
         
         UIImage *baseIcon = [UIImage systemImageNamed:iconName];
-        UIImage *icon = [baseIcon imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+        UIImage *icon = [baseIcon imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
         [button setImage:icon forState:UIControlStateNormal];
-        button.tintColor = [ThetaHelper iotaPinkColor];
+        button.tintColor = [ZeusHelper iotaPinkColor];
         button.accessibilityLabel = accessibilityLabel;
         [button addTarget:self action:actionSelector forControlEvents:UIControlEventTouchUpInside];
         [button sizeToFit];
@@ -500,11 +519,11 @@ static inline BOOL isBiometricOrPasscodeSet() {
     NSDictionary *settingDict = self.settings[row];
     NSString *title = settingDict[@"title"] ?: @"Info";
     NSString *message = settingDict[@"info"] ?: settingDict[@"detail"] ?: @"";
-    [ThetaHelper showCustomAlertWithActions:title description:message actions:@[@{ @"title": @"OK", @"handler": ^(id s) {} }]];
+    [ZeusHelper showCustomAlertWithActions:title description:message actions:@[@{ @"title": @"OK", @"handler": ^(id s) {} }]];
 }
 
 - (void)showBiometricDisabledAlert {
-    [ThetaHelper showCustomAlertWithActions:@"Setting Disabled" description:@"This setting requires Face ID, Touch ID, or a device passcode to be set up. Please enable one in your device settings to use this feature." actions:@[
+    [ZeusHelper showCustomAlertWithActions:@"Setting Disabled" description:@"This setting requires Face ID, Touch ID, or a device passcode to be set up. Please enable one in your device settings to use this feature." actions:@[
         @{
             @"title": @"OK",
             @"handler": ^(id sender) {
@@ -549,7 +568,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
 
     if ([settingTitle isEqualToString:@"Easter Eggs"] && sender.isOn) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            		[ThetaHelper showToastWithTitle:@"Easter Eggs not implemented yet!" subtitle:@"Will be soon, stay tuned!" icon:[ThetaHelper imageFromEmojiString:@"🐥" width:300] autoHide:4 openURL:nil];
+            		[ZeusHelper showToastWithTitle:@"Easter Eggs not implemented yet!" subtitle:@"Will be soon, stay tuned!" icon:[ZeusHelper imageFromEmojiString:@"🐥" width:300] autoHide:4 openURL:nil];
         });
     }
 
@@ -570,7 +589,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
     });
     if ([sRestartRequired containsObject:settingTitle]) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [ThetaHelper showLoadToast:@"App Restart Required" subtitle:@"Restart the app for changes to apply." icon:[ThetaHelper imageFromEmojiString:@"⚠️" width:300] autoHide:4 openURL:nil];
+            [ZeusHelper showLoadToast:@"App Restart Required" subtitle:@"Restart the app for changes to apply." icon:[ZeusHelper imageFromEmojiString:@"⚠️" width:300] autoHide:4 openURL:nil];
         });
     }
 }
@@ -585,7 +604,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
         }
     }
     if (title.length > 0) {
-        [ThetaHelper storeSegmentIndex:sender.selectedSegmentIndex forSettingTitle:title];
+        [ZeusHelper storeSegmentIndex:sender.selectedSegmentIndex forSettingTitle:title];
     }
 }
 
@@ -623,7 +642,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
     }
 
     if (ENABLED(@"Show Banners")) {
-        [ThetaHelper showToastWithTitle:@"Colors Reset" subtitle:@"Button colors restored to default." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Colors Reset" subtitle:@"Button colors restored to default." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
     }
 }
 
@@ -707,7 +726,7 @@ static inline BOOL isBiometricOrPasscodeSet() {
     
     if (ENABLED(@"Show Banners")) {
         NSString *subtitle = filesDeleted > 0 ? [NSString stringWithFormat:@"Cleared %lu file%@ (%@)", (unsigned long)filesDeleted, filesDeleted == 1 ? @"" : @"s", sizeString] : @"Cache cleared.";
-        [ThetaHelper showToastWithTitle:@"Cache Cleared" subtitle:subtitle icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Cache Cleared" subtitle:subtitle icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
     }
 }
 

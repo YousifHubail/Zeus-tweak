@@ -2,12 +2,12 @@
 #import "Include/MediaSelectionViewController.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 #import "Include/AV1Transcoder.h"
 #import <AVFoundation/AVFoundation.h>
 #import <Photos/Photos.h>
 #import <AssetsLibrary/AssetsLibrary.h>
-#import "Include/ThetaDashManifest.h"
+#import "Include/ZeusDashManifest.h"
 
 // Helper functions for cleaner code
 static void cleanupTemporaryFiles(NSString *videoPath, NSString *audioPath, NSString *outputPath) {
@@ -23,27 +23,27 @@ static void cleanupTemporaryFiles(NSString *videoPath, NSString *audioPath, NSSt
     }
 }
 
-static void theta_removePath(NSString *path) {
+static void zeus_removePath(NSString *path) {
     if (!path.length) return;
     [[NSFileManager defaultManager] removeItemAtPath:path error:nil];
 }
 
-static BOOL theta_moveReplace(NSString *src, NSString *dst) {
+static BOOL zeus_moveReplace(NSString *src, NSString *dst) {
     if (!src.length || !dst.length) return NO;
     NSFileManager *fm = [NSFileManager defaultManager];
-    theta_removePath(dst);
+    zeus_removePath(dst);
     NSError *err = nil;
     if ([fm moveItemAtPath:src toPath:dst error:&err]) return YES;
     err = nil;
     if ([fm copyItemAtPath:src toPath:dst error:&err]) {
-        theta_removePath(src);
+        zeus_removePath(src);
         return YES;
     }
-    NSLog(@"theta_moveReplace failed %@ -> %@: %@", src, dst, err);
+    NSLog(@"zeus_moveReplace failed %@ -> %@: %@", src, dst, err);
     return NO;
 }
 
-static void theta_sweepStaleReelSaveFiles(void) {
+static void zeus_sweepStaleReelSaveFiles(void) {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSMutableArray<NSString *> *roots = [NSMutableArray array];
     NSString *docs = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
@@ -57,27 +57,27 @@ static void theta_sweepStaleReelSaveFiles(void) {
     ];
     for (NSString *root in roots) {
         for (NSString *name in staleNames) {
-            theta_removePath([root stringByAppendingPathComponent:name]);
+            zeus_removePath([root stringByAppendingPathComponent:name]);
         }
         NSArray<NSString *> *items = [fm contentsOfDirectoryAtPath:root error:nil];
         for (NSString *item in items) {
-            if ([item hasPrefix:@"theta_save_"] || [item hasPrefix:@"theta-save"] || [item hasPrefix:@"theta_bulk_"]) {
-                theta_removePath([root stringByAppendingPathComponent:item]);
+            if ([item hasPrefix:@"zeus_save_"] || [item hasPrefix:@"zeus-save"] || [item hasPrefix:@"zeus_bulk_"]) {
+                zeus_removePath([root stringByAppendingPathComponent:item]);
             }
         }
     }
 }
 
-static NSString *theta_makeReelSaveWorkDir(void) {
-    NSString *dir = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"theta-save-%@", [[NSUUID UUID] UUIDString]]];
+static NSString *zeus_makeReelSaveWorkDir(void) {
+    NSString *dir = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"zeus-save-%@", [[NSUUID UUID] UUIDString]]];
     [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
     return dir;
 }
 
-static BOOL theta_tryBeginSaveJob(void) {
+static BOOL zeus_tryBeginSaveJob(void) {
     __block BOOL began = NO;
     void (^begin)(void) = ^{
-        began = [ThetaHelper tryBeginGlobalDownloadOrNotify];
+        began = [ZeusHelper tryBeginGlobalDownloadOrNotify];
     };
     if ([NSThread isMainThread]) {
         begin();
@@ -96,7 +96,7 @@ static void showCompletionToast(CustomToastView *progressToast, BOOL success, NS
             [generator impactOccurred];
         }
     } else {
-        [ThetaHelper showToastWithTitle:title subtitle:subtitle icon:icon autoHide:4 openURL:url];
+        [ZeusHelper showToastWithTitle:title subtitle:subtitle icon:icon autoHide:4 openURL:url];
     }
 }
 
@@ -107,11 +107,11 @@ static void downloadHDVideo(IGVideo *inputVideo) {
 }
 
 static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedVideoURL) {
-    NSData *videoData = ThetaValueForKey(inputVideo, @"dashManifestData");
+    NSData *videoData = ZeusValueForKey(inputVideo, @"dashManifestData");
     if (![videoData isKindOfClass:[NSData class]] || videoData.length == 0) {
         return;
     }
-    if (!theta_tryBeginSaveJob()) {
+    if (!zeus_tryBeginSaveJob()) {
         return;
     }
     
@@ -128,7 +128,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
             dispatch_async(dispatch_get_main_queue(), ^{
                 showCompletionToast(progressToast, NO, @"Error", @"Could not parse video URLs from manifest", [UIImage systemImageNamed:@"exclamationmark.triangle"], nil);
             });
-            [ThetaHelper endGlobalDownload];
+            [ZeusHelper endGlobalDownload];
             return;
         }
         
@@ -137,14 +137,14 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
         __block BOOL hasAudio = (audioURLString != nil && audioURLString.length > 0 && audioTestURL != nil);
 
         NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-        theta_sweepStaleReelSaveFiles();
-        NSString *workDir = theta_makeReelSaveWorkDir();
+        zeus_sweepStaleReelSaveFiles();
+        NSString *workDir = zeus_makeReelSaveWorkDir();
         __block BOOL jobFinished = NO;
         void (^finishJob)(void) = ^{
             if (jobFinished) return;
             jobFinished = YES;
-            theta_removePath(workDir);
-            [ThetaHelper endGlobalDownload];
+            zeus_removePath(workDir);
+            [ZeusHelper endGlobalDownload];
         };
         NSString *videoPath = [workDir stringByAppendingPathComponent:@"video.mp4"];
         __block NSString *audioPath = [workDir stringByAppendingPathComponent:@"audio.m4a"];
@@ -168,7 +168,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                 [progressToast completeProgressWithTitle:@"Error" subtitle:@"Failed to download video" icon:nil url:nil];
             });
         } else if (location) {
-            theta_moveReplace(location.path, videoPath);
+            zeus_moveReplace(location.path, videoPath);
         }
         dispatch_group_leave(downloadGroup);
     }];
@@ -184,7 +184,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
             if (error) {
                 NSLog(@"Error downloading audio: %@", error);
             } else if (location) {
-                theta_moveReplace(location.path, audioPath);
+                zeus_moveReplace(location.path, audioPath);
             }
             dispatch_group_leave(downloadGroup);
         }];
@@ -209,7 +209,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
             return;
         }
         if (hasAudio) {
-            NSString *preparedAudio = ThetaPrepareDashAudioForMerge(audioPath);
+            NSString *preparedAudio = ZeusPrepareDashAudioForMerge(audioPath);
             if (preparedAudio.length) {
                 audioPath = preparedAudio;
             } else {
@@ -278,7 +278,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [progressToast updateProgressWithTitle:@"Saving video" subtitle:@"Converting video..."];
                 });
-                BOOL nativeOK = ThetaExportPhotosCompatibleMP4(videoPath, audioPath, hasAudio, h264OutputPath);
+                BOOL nativeOK = ZeusExportPhotosCompatibleMP4(videoPath, audioPath, hasAudio, h264OutputPath);
                 if (nativeOK) {
                     success = YES;
                     fileToSave = h264OutputPath;
@@ -309,7 +309,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                     });
                     finishJob();
                 } else {
-                    ThetaPhotoLibraryImportVideoFromURL([NSURL fileURLWithPath:fileToSave], ^(BOOL ok, NSError *error) {
+                    ZeusPhotoLibraryImportVideoFromURL([NSURL fileURLWithPath:fileToSave], ^(BOOL ok, NSError *error) {
                         if (ok) {
                             dispatch_async(dispatch_get_main_queue(), ^{
                                 NSInteger saveMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"Save Method_SegmentIndex"];
@@ -473,7 +473,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                 AVAsset *mergedAsset = [AVAsset assetWithURL:outputURL];
                 NSArray<AVAssetTrack *> *mergedAudioTracks = [mergedAsset tracksWithMediaType:AVMediaTypeAudio];
                 if (hasAudio && mergedAudioTracks.count <= 0) {
-                    NSLog(@"ThetaSave: export completed without an audio track (DASH audio may be unsupported)");
+                    NSLog(@"ZeusSave: export completed without an audio track (DASH audio may be unsupported)");
                 }
                 
                 // Check and request photo library authorization
@@ -613,7 +613,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                                     #else
                                         // For jailbreak builds, use file URL (faster, no memory copy)
                                         NSURL *h264OutputURL = [NSURL fileURLWithPath:h264OutputPath];
-                                        ThetaPhotoLibraryImportVideoFromURL(h264OutputURL, ^(BOOL success, NSError * _Nullable error) {
+                                        ZeusPhotoLibraryImportVideoFromURL(h264OutputURL, ^(BOOL success, NSError * _Nullable error) {
                                             if (success) {
                                                 
                                                 dispatch_async(dispatch_get_main_queue(), ^{
@@ -689,7 +689,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                                     dispatch_async(dispatch_get_main_queue(), ^{
                                         [progressToast updateProgressWithTitle:@"Saving video" subtitle:@"Converting video..."];
                                     });
-                                    if (ThetaExportPhotosCompatibleMP4(outputPath, audioPath, hasAudio, h264OutputPath)) {
+                                    if (ZeusExportPhotosCompatibleMP4(outputPath, audioPath, hasAudio, h264OutputPath)) {
                                         outputPath = h264OutputPath;
                                         outputURL = [NSURL fileURLWithPath:h264OutputPath];
                                     }
@@ -704,7 +704,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                     [progressToast updateProgressWithTitle:@"Saving video" subtitle:@"Adding to camera roll..."];
                 });
                 
-                ThetaPhotoLibraryImportVideoFromURL(outputURL, ^(BOOL success, NSError * _Nullable error) {
+                ZeusPhotoLibraryImportVideoFromURL(outputURL, ^(BOOL success, NSError * _Nullable error) {
                     if (success) {
                         
                         dispatch_async(dispatch_get_main_queue(), ^{
@@ -731,7 +731,7 @@ static void downloadHDVideoSelectingURL(IGVideo *inputVideo, NSString *selectedV
                     [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus newStatus) {
                         NSLog(@"Photo library authorization status after request: %ld", (long)newStatus);
                         if (newStatus == PHAuthorizationStatusAuthorized || newStatus == PHAuthorizationStatusLimited) {
-                            ThetaPhotoLibraryImportVideoFromURL(outputURL, ^(BOOL success, NSError * _Nullable error) {
+                            ZeusPhotoLibraryImportVideoFromURL(outputURL, ^(BOOL success, NSError * _Nullable error) {
                                 if (success) {
                                     
                                     // Clean up temporary files after saving to camera roll
@@ -797,15 +797,15 @@ static void downloadMedia(id self) {
         NSString *toastTitle = currentMedia.items.count > 1 ? @"Fetching media..." : @"Saving media...";
         
         // Check if download is already in progress BEFORE showing toast to prevent flash
-        if ([ThetaHelper isGlobalDownloadInProgress]) {
+        if ([ZeusHelper isGlobalDownloadInProgress]) {
             // Show the "download in progress" notification immediately without the "saving media" flash
-            [ThetaHelper tryBeginGlobalDownloadOrNotify];
+            [ZeusHelper tryBeginGlobalDownloadOrNotify];
             return;
         }
         
         if (ENABLED(@"Show Banners")) {
             UIImage *fetchingImage = [UIImage systemImageNamed:@"arrow.clockwise"];
-            [ThetaHelper showToastWithTitle:toastTitle subtitle:@"This will only take a second." icon:fetchingImage autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:toastTitle subtitle:@"This will only take a second." icon:fetchingImage autoHide:4 openURL:nil];
         }
 
         __weak typeof(self) weakSelf = self;
@@ -890,17 +890,17 @@ static void downloadMedia(id self) {
                             if (url) {
                                 MediaSelectionViewController *mediaSelectionVC = [[MediaSelectionViewController alloc] init];
                                 // Guard for camera roll save via mediaSelectionVC helper
-                                if (![ThetaHelper tryBeginGlobalDownloadOrNotify]) {
+                                if (![ZeusHelper tryBeginGlobalDownloadOrNotify]) {
                                     return;
                                 }
                                 [mediaSelectionVC downloadMediaToTemp:url completion:^(NSString *filePath, NSString *fileExtension){
-                                    [ThetaHelper endGlobalDownload];
+                                    [ZeusHelper endGlobalDownload];
                                     if (ENABLED(@"Show Banners")) {
                                         NSInteger saveMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"Save Method_SegmentIndex"];
                                         if (saveMethod == 0) {
-                                            [ThetaHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                                            [ZeusHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                                         } else {
-                                            [ThetaHelper showToastWithTitle:@"Saved!" subtitle:@"Saved to Documents." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
+                                            [ZeusHelper showToastWithTitle:@"Saved!" subtitle:@"Saved to Documents." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
                                         }
                                     }
                                 }];
@@ -917,13 +917,13 @@ static void downloadMedia(id self) {
                                 dispatch_async(dispatch_get_main_queue(), ^{
                                     MediaSelectionViewController *mediaSelectionVC = [[MediaSelectionViewController alloc] initWithMediaItems:regularItems hdVideos:igvideos withCount:totalItems];
                                     UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
-                                    [[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+                                    [[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
                                 });
                             }];
                         } else {
                             MediaSelectionViewController *mediaSelectionVC = [[MediaSelectionViewController alloc] initWithMediaItems:regularItems withCount:totalItems];
                             UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
-                            [[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+                            [[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
                         }
                     }
                 });
@@ -983,7 +983,7 @@ static void fullscreenMediaItem(id self) {
         MediaViewController *mediaVC = [MediaViewController new];
         [mediaVC initWithMediaURL:url];
         mediaVC.modalPresentationStyle = UIModalPresentationFullScreen;
-        [[ThetaHelper topViewController] presentViewController:mediaVC animated:YES completion:nil];
+        [[ZeusHelper topViewController] presentViewController:mediaVC animated:YES completion:nil];
     } @catch (NSException *exception) {
         NSLog(@"Error: %@", exception);
     }
@@ -994,7 +994,7 @@ static void hook_savePost(id self, SEL _cmd) {
     if (orig_savePost) orig_savePost(self, _cmd);
 
     if (ENABLED(@"Hide Repost Button")) {
-        id repostView = ThetaValueForKey(self, @"_repostView");
+        id repostView = ZeusValueForKey(self, @"_repostView");
         if ([repostView respondsToSelector:@selector(setHidden:)]) {
             [repostView setHidden:YES];
         }
@@ -1009,9 +1009,9 @@ static void hook_savePost(id self, SEL _cmd) {
         return;
     }
 
-    UIView *sendView = ThetaValueForKey(self, @"_sendView");
+    UIView *sendView = ZeusValueForKey(self, @"_sendView");
     if (![sendView isKindOfClass:[UIView class]]) {
-        sendView = ThetaValueForKey(self, @"sendView");
+        sendView = ZeusValueForKey(self, @"sendView");
     }
     if (![sendView isKindOfClass:[UIView class]]) {
         return;
@@ -1033,7 +1033,7 @@ static void hook_savePost(id self, SEL _cmd) {
     
     [downloadButton setTranslatesAutoresizingMaskIntoConstraints:NO];
 
-    ThetaSetCaptureHiding(downloadButton);
+    ZeusSetCaptureHiding(downloadButton);
     if (ENABLED(@"Save Media") || ENABLED(@"Fullscreen Posts")) {
 		[self addSubview:downloadButton];
         [NSLayoutConstraint activateConstraints:@[
@@ -1063,7 +1063,7 @@ static void hook_savePost(id self, SEL _cmd) {
                                                     identifier:nil
                                                         handler:^(__kindof UIAction * _Nonnull action) {
                                                             downloadMedia(weakSelf);
-                                                        [ThetaHelper performHapticFeedbackIfEnabled];
+                                                        [ZeusHelper performHapticFeedbackIfEnabled];
                                                         }];
                 [actions addObject:downloadBtn];
             }
@@ -1085,7 +1085,7 @@ static void hook_savePost(id self, SEL _cmd) {
                                                         identifier:nil
                                                         handler:^(__kindof UIAction * _Nonnull action) {
                                                                 fullscreenMediaItem(weakSelf);
-                                                            [ThetaHelper performHapticFeedbackIfEnabled];
+                                                            [ZeusHelper performHapticFeedbackIfEnabled];
                                                         }];
                 [actions addObject:fullscreenBtn];
             }
@@ -1119,7 +1119,7 @@ static void downloadSundialMedia(id self) {
     // Create thread-safe arrays with synchronization queue
     NSMutableArray *hdvideoss = [NSMutableArray array];
     NSMutableArray *normalItems = [NSMutableArray array];
-    dispatch_queue_t syncQueue = dispatch_queue_create("com.theta.mediaSync", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t syncQueue = dispatch_queue_create("com.zeus.mediaSync", DISPATCH_QUEUE_SERIAL);
 
     NSArray *mediaItems = [media valueForKey:@"items"];
     if (!mediaItems || mediaItems.count == 0) {
@@ -1229,7 +1229,7 @@ static void downloadSundialMedia(id self) {
                         if (mediaSelectionVC) {
                             UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
                             if (navController) {
-                                [[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+                                [[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
                             }
                         }
                     });
@@ -1274,9 +1274,9 @@ static void downloadSundialMedia(id self) {
                             if (ENABLED(@"Show Banners")) {
                                 NSInteger saveMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"Save Method_SegmentIndex"];
                                 if (saveMethod == 0) {
-                                    [ThetaHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                                    [ZeusHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                                 } else {
-                                    [ThetaHelper showToastWithTitle:@"Saved!" subtitle:@"Saved to Documents." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
+                                    [ZeusHelper showToastWithTitle:@"Saved!" subtitle:@"Saved to Documents." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
                                 }
                             }
                         }];
@@ -1295,7 +1295,7 @@ static void downloadSundialMedia(id self) {
                             if (mediaSelectionVC) {
                                 UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
                                 if (navController) {
-                                    [[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+                                    [[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
                                 }
                             }
                         });
@@ -1305,7 +1305,7 @@ static void downloadSundialMedia(id self) {
                     if (mediaSelectionVC) {
                         UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
                         if (navController) {
-                            [[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+                            [[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
                         }
                     }
                 }
@@ -1314,8 +1314,8 @@ static void downloadSundialMedia(id self) {
     });
 }
 
-/// Removes the whole repost “column” from a horizontal `UIStackView` so space collapses (same idea as HideTabs `theta_detachTabSlotForLabel`).
-static void theta_sundialDetachRepostUFISlot(UIView *start, UIView *ufiRoot) {
+/// Removes the whole repost “column” from a horizontal `UIStackView` so space collapses (same idea as HideTabs `zeus_detachTabSlotForLabel`).
+static void zeus_sundialDetachRepostUFISlot(UIView *start, UIView *ufiRoot) {
     if (!start || !ufiRoot || ![start isDescendantOfView:ufiRoot]) {
         return;
     }
@@ -1345,7 +1345,7 @@ static void theta_sundialDetachRepostUFISlot(UIView *start, UIView *ufiRoot) {
 }
 
 /// `_lazyRepostCountButton` is often a non-`UIView` wrapper; the real subtree is under ivar `_view`.
-static UIView *theta_sundialLazyRepostCountInnerView(id lazyRepostCountButton) {
+static UIView *zeus_sundialLazyRepostCountInnerView(id lazyRepostCountButton) {
     if (!lazyRepostCountButton) {
         return nil;
     }
@@ -1363,7 +1363,7 @@ static UIView *theta_sundialLazyRepostCountInnerView(id lazyRepostCountButton) {
 }
 
 /// Count is often a *separate* horizontal stack item from the main repost control — detach both.
-static void theta_sundialStripLazyRepostCountIfPresent(UIView *ufi) {
+static void zeus_sundialStripLazyRepostCountIfPresent(UIView *ufi) {
     if (!ufi) {
         return;
     }
@@ -1372,13 +1372,13 @@ static void theta_sundialStripLazyRepostCountIfPresent(UIView *ufi) {
         lazyCount = [ufi valueForKey:@"_lazyRepostCountButton"];
     } @catch (__unused NSException *e) {
     }
-    UIView *lazyInner = theta_sundialLazyRepostCountInnerView(lazyCount);
+    UIView *lazyInner = zeus_sundialLazyRepostCountInnerView(lazyCount);
     if (lazyInner && [lazyInner isDescendantOfView:ufi]) {
-        theta_sundialDetachRepostUFISlot(lazyInner, ufi);
+        zeus_sundialDetachRepostUFISlot(lazyInner, ufi);
     }
 }
 
-static void theta_sundialHideRepostControls(UIView *ufi) {
+static void zeus_sundialHideRepostControls(UIView *ufi) {
     id repost = nil;
     id lazyCount = nil;
     @try {
@@ -1391,7 +1391,7 @@ static void theta_sundialHideRepostControls(UIView *ufi) {
     }
 
     if ([repost isKindOfClass:[UIView class]] && [(UIView *)repost isDescendantOfView:ufi]) {
-        theta_sundialDetachRepostUFISlot((UIView *)repost, ufi);
+        zeus_sundialDetachRepostUFISlot((UIView *)repost, ufi);
     }
 
     @try {
@@ -1399,15 +1399,15 @@ static void theta_sundialHideRepostControls(UIView *ufi) {
     } @catch (__unused NSException *e) {
     }
     {
-        UIView *lazyInner = theta_sundialLazyRepostCountInnerView(lazyCount);
+        UIView *lazyInner = zeus_sundialLazyRepostCountInnerView(lazyCount);
         if (lazyInner && [lazyInner isDescendantOfView:ufi]) {
-            theta_sundialDetachRepostUFISlot(lazyInner, ufi);
+            zeus_sundialDetachRepostUFISlot(lazyInner, ufi);
         }
     }
 
     @try {
         id lazyBtn = [ufi valueForKey:@"_lazyRepostCountButton"];
-        UIView *inner = theta_sundialLazyRepostCountInnerView(lazyBtn);
+        UIView *inner = zeus_sundialLazyRepostCountInnerView(lazyBtn);
         if (inner) {
             inner.hidden = YES;
             inner.alpha = 0;
@@ -1443,12 +1443,12 @@ static void hook_sundialUFILayoutSubviews(id self, SEL _cmd) {
         return;
     }
     @try {
-        theta_sundialStripLazyRepostCountIfPresent((UIView *)self);
+        zeus_sundialStripLazyRepostCountIfPresent((UIView *)self);
     } @catch (__unused NSException *e) {
     }
 }
 
-static IGMedia *theta_sundialMediaFromUFI(id ufi) {
+static IGMedia *zeus_sundialMediaFromUFI(id ufi) {
     if (!ufi) return nil;
     IGMedia *media = nil;
     @try {
@@ -1462,17 +1462,17 @@ static IGMedia *theta_sundialMediaFromUFI(id ufi) {
             }
         }
         if (!media) {
-            id viewModel = ThetaValueForKey(ufi, @"viewModel");
-            if (!viewModel) viewModel = ThetaValueForKey(ufi, @"_viewModel");
-            media = ThetaValueForKey(viewModel, @"media");
-            if (!media) media = ThetaValueForKey(viewModel, @"_media");
+            id viewModel = ZeusValueForKey(ufi, @"viewModel");
+            if (!viewModel) viewModel = ZeusValueForKey(ufi, @"_viewModel");
+            media = ZeusValueForKey(viewModel, @"media");
+            if (!media) media = ZeusValueForKey(viewModel, @"_media");
         }
     } @catch (__unused NSException *exception) {
     }
     return media;
 }
 
-static NSArray<IGVideo *> *theta_sundialVideosFromMedia(IGMedia *media) {
+static NSArray<IGVideo *> *zeus_sundialVideosFromMedia(IGMedia *media) {
     NSMutableArray<IGVideo *> *videos = [NSMutableArray array];
     NSArray *items = [media valueForKey:@"items"];
     if (![items isKindOfClass:[NSArray class]]) return videos;
@@ -1499,11 +1499,11 @@ static NSArray<IGVideo *> *theta_sundialVideosFromMedia(IGMedia *media) {
     return videos;
 }
 
-static NSTimeInterval theta_igVideoDurationSeconds(id object) {
+static NSTimeInterval zeus_igVideoDurationSeconds(id object) {
     if (!object) return 0;
     NSArray<NSString *> *keys = @[@"videoDuration", @"duration", @"length", @"videoLength", @"mediaDuration", @"_videoDuration"];
     for (NSString *key in keys) {
-        id value = ThetaValueForKey(object, key);
+        id value = ZeusValueForKey(object, key);
         if (![value respondsToSelector:@selector(doubleValue)]) continue;
         double duration = [value doubleValue];
         if (duration <= 0) continue;
@@ -1513,18 +1513,18 @@ static NSTimeInterval theta_igVideoDurationSeconds(id object) {
     return 0;
 }
 
-static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
+static NSArray<UIMenuElement *> *zeus_reelQualityMenuElements(id ufi) {
     NSMutableArray<UIMenuElement *> *actions = [NSMutableArray array];
 
-    IGMedia *media = theta_sundialMediaFromUFI(ufi);
-    NSArray<IGVideo *> *videos = theta_sundialVideosFromMedia(media);
+    IGMedia *media = zeus_sundialMediaFromUFI(ufi);
+    NSArray<IGVideo *> *videos = zeus_sundialVideosFromMedia(media);
     if (videos.count != 1) {
         __weak typeof(ufi) weakUFI = ufi;
         UIAction *download = [UIAction actionWithTitle:@"Download"
                                                 image:nil
                                            identifier:nil
                                               handler:^(__kindof UIAction * _Nonnull action) {
-            [ThetaHelper performHapticFeedbackIfEnabled];
+            [ZeusHelper performHapticFeedbackIfEnabled];
             downloadSundialMedia(weakUFI);
         }];
         [actions addObject:download];
@@ -1532,18 +1532,18 @@ static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
     }
 
     IGVideo *video = videos.firstObject;
-    NSData *manifestData = ThetaValueForKey(video, @"dashManifestData");
+    NSData *manifestData = ZeusValueForKey(video, @"dashManifestData");
     NSString *manifest = [manifestData isKindOfClass:[NSData class]] ? [[NSString alloc] initWithData:manifestData encoding:NSUTF8StringEncoding] : nil;
-    NSTimeInterval fallbackDuration = theta_igVideoDurationSeconds(video);
-    if (fallbackDuration <= 0) fallbackDuration = theta_igVideoDurationSeconds(media);
-    NSArray<ThetaDashVideoQuality *> *qualities = ThetaDashManifestVideoQualities(manifest, fallbackDuration);
+    NSTimeInterval fallbackDuration = zeus_igVideoDurationSeconds(video);
+    if (fallbackDuration <= 0) fallbackDuration = zeus_igVideoDurationSeconds(media);
+    NSArray<ZeusDashVideoQuality *> *qualities = ZeusDashManifestVideoQualities(manifest, fallbackDuration);
 
     if (qualities.count == 0) {
         UIAction *download = [UIAction actionWithTitle:@"Download"
                                                 image:nil
                                            identifier:nil
                                               handler:^(__kindof UIAction * _Nonnull action) {
-            [ThetaHelper performHapticFeedbackIfEnabled];
+            [ZeusHelper performHapticFeedbackIfEnabled];
             downloadHDVideo(video);
         }];
         [actions addObject:download];
@@ -1552,7 +1552,7 @@ static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
 
     NSMutableSet<NSNumber *> *qualitiesSeen = [NSMutableSet set];
     NSMutableSet<NSNumber *> *duplicateQualities = [NSMutableSet set];
-    for (ThetaDashVideoQuality *quality in qualities) {
+    for (ZeusDashVideoQuality *quality in qualities) {
         NSNumber *key = @(quality.quality);
         if ([qualitiesSeen containsObject:key]) {
             [duplicateQualities addObject:key];
@@ -1561,7 +1561,7 @@ static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
         }
     }
 
-    for (ThetaDashVideoQuality *quality in qualities) {
+    for (ZeusDashVideoQuality *quality in qualities) {
         BOOL includeCodec = [duplicateQualities containsObject:@(quality.quality)] || quality.quality <= 0;
         NSString *title = [quality menuTitleIncludingCodec:includeCodec];
         NSString *url = [quality.url copy];
@@ -1569,7 +1569,7 @@ static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
                                                image:nil
                                           identifier:nil
                                              handler:^(__kindof UIAction * _Nonnull action) {
-            [ThetaHelper performHapticFeedbackIfEnabled];
+            [ZeusHelper performHapticFeedbackIfEnabled];
             downloadHDVideoSelectingURL(video, url);
         }];
         NSString *subtitle = [quality menuSubtitle];
@@ -1582,7 +1582,7 @@ static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
                                              image:nil
                                         identifier:nil
                                            handler:^(__kindof UIAction * _Nonnull action) {
-                    [ThetaHelper performHapticFeedbackIfEnabled];
+                    [ZeusHelper performHapticFeedbackIfEnabled];
                     downloadHDVideoSelectingURL(video, url);
                 }];
             }
@@ -1592,32 +1592,93 @@ static NSArray<UIMenuElement *> *theta_reelQualityMenuElements(id ufi) {
     return actions;
 }
 
-static void theta_configureReelDownloadMenu(UIButton *downloadButton, id ufi) {
+// Picks the best rendition automatically instead of presenting a quality menu.
+// The array from ZeusDashManifestVideoQualities is sorted highest-resolution
+// first and, within one resolution, by codec rank (H.264, then HEVC, then AV1),
+// so element 0 is the highest quality available in the most compatible codec
+// offered at that resolution.
+static void zeus_downloadReelHighestQuality(id ufi) {
+    IGMedia *media = zeus_sundialMediaFromUFI(ufi);
+    NSArray<IGVideo *> *videos = zeus_sundialVideosFromMedia(media);
+    if (videos.count != 1) {
+        downloadSundialMedia(ufi);
+        return;
+    }
+
+    IGVideo *video = videos.firstObject;
+    NSData *manifestData = ZeusValueForKey(video, @"dashManifestData");
+    NSString *manifest = [manifestData isKindOfClass:[NSData class]]
+        ? [[NSString alloc] initWithData:manifestData encoding:NSUTF8StringEncoding]
+        : nil;
+    NSTimeInterval fallbackDuration = zeus_igVideoDurationSeconds(video);
+    if (fallbackDuration <= 0) fallbackDuration = zeus_igVideoDurationSeconds(media);
+
+    NSArray<ZeusDashVideoQuality *> *qualities = ZeusDashManifestVideoQualities(manifest, fallbackDuration);
+    if (qualities.count == 0) {
+        downloadHDVideo(video);
+        return;
+    }
+    // Prefer the best non-AV1 rendition. AV1 has no MPEG-4 writer in
+    // AVFoundation, so saving it depends on the ffmpeg transcoder, which is not
+    // embedded in sideload builds -- picking AV1 here would fail every save.
+    // Instagram serves H.264/HEVC at the same resolutions in practice, so this
+    // costs nothing; fall back to element 0 only if AV1 is genuinely all there is.
+    ZeusDashVideoQuality *chosen = nil;
+    for (ZeusDashVideoQuality *quality in qualities) {
+        if (![quality isAV1]) { chosen = quality; break; }
+    }
+    if (!chosen) chosen = qualities.firstObject;
+    downloadHDVideoSelectingURL(video, chosen.url);
+}
+
+static void zeus_configureReelDownloadMenu(UIButton *downloadButton, id ufi) {
     if (!downloadButton) return;
+
+    // Download Quality: 0 = Highest (instant), 1 = Ask Me (resolution menu).
+    // Read every time the button is configured so the setting takes effect
+    // without an app restart.
+    BOOL askForQuality =
+        [[NSUserDefaults standardUserDefaults] integerForKey:@"Download Quality_SegmentIndex"] == 1;
+
+    if (askForQuality) {
+        __weak typeof(ufi) weakMenuUFI = ufi;
+        UIDeferredMenuElement *deferred = [UIDeferredMenuElement elementWithProvider:^(void (^completion)(NSArray<UIMenuElement *> *elements)) {
+            NSArray<UIMenuElement *> *actions = nil;
+            @try {
+                actions = zeus_reelQualityMenuElements(weakMenuUFI);
+            } @catch (__unused NSException *exception) {
+                actions = nil;
+            }
+            if (actions.count == 0) {
+                UIAction *fallback = [UIAction actionWithTitle:@"Download"
+                                                        image:nil
+                                                   identifier:nil
+                                                      handler:^(__kindof UIAction * _Nonnull action) {
+                    [ZeusHelper performHapticFeedbackIfEnabled];
+                    downloadSundialMedia(weakMenuUFI);
+                }];
+                actions = @[fallback];
+            }
+            UIMenu *qualityMenu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:actions];
+            completion(@[qualityMenu]);
+        }];
+        downloadButton.menu = [UIMenu menuWithTitle:@"" children:@[deferred]];
+        downloadButton.showsMenuAsPrimaryAction = YES;
+        return;
+    }
+
+    // Highest: tap downloads immediately, no menu.
+    downloadButton.menu = nil;
+    downloadButton.showsMenuAsPrimaryAction = NO;
     __weak typeof(ufi) weakUFI = ufi;
-    UIDeferredMenuElement *deferred = [UIDeferredMenuElement elementWithProvider:^(void (^completion)(NSArray<UIMenuElement *> *elements)) {
-        NSArray<UIMenuElement *> *actions = nil;
+    [downloadButton addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
+        [ZeusHelper performHapticFeedbackIfEnabled];
         @try {
-            actions = theta_reelQualityMenuElements(weakUFI);
-        } @catch (__unused NSException *exception) {
-            actions = nil;
+            zeus_downloadReelHighestQuality(weakUFI);
+        } @catch (NSException *exception) {
+            NSLog(@"[Zeus] reel download: %@", exception);
         }
-        if (actions.count == 0) {
-            UIAction *fallback = [UIAction actionWithTitle:@"Download"
-                                                    image:nil
-                                               identifier:nil
-                                                  handler:^(__kindof UIAction * _Nonnull action) {
-                [ThetaHelper performHapticFeedbackIfEnabled];
-                downloadSundialMedia(weakUFI);
-            }];
-            actions = @[fallback];
-        }
-        UIMenu *qualityMenu = [UIMenu menuWithTitle:@"" image:nil identifier:nil options:UIMenuOptionsDisplayInline children:actions];
-        completion(@[qualityMenu]);
-    }];
-    UIMenu *menu = [UIMenu menuWithTitle:@"" children:@[deferred]];
-    downloadButton.menu = menu;
-    downloadButton.showsMenuAsPrimaryAction = YES;
+    }] forControlEvents:UIControlEventTouchUpInside];
 }
 
 static void (*orig_sundialViewerVerticalUFI)(IGSundialViewerVerticalUFI *self, SEL _cmd, IGSundialViewerUFIViewModel *viewModel);
@@ -1633,13 +1694,13 @@ static void hook_sundialViewerVerticalUFI(IGSundialViewerVerticalUFI *self, SEL 
             }
             @try {
                 // Do not use setValue:forKey: on ivars — can crash. Detach whole stack slot to avoid empty gap.
-                theta_sundialHideRepostControls(ufi);
+                zeus_sundialHideRepostControls(ufi);
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                     IGSundialViewerVerticalUFI *again = weakSelf;
                     if (!again) {
                         return;
                     }
-                    theta_sundialHideRepostControls(again);
+                    zeus_sundialHideRepostControls(again);
                 });
             } @catch (NSException *exception) {
                 NSLog(@"Error hiding repost button: %@", exception);
@@ -1664,9 +1725,9 @@ static void hook_sundialViewerVerticalUFI(IGSundialViewerVerticalUFI *self, SEL 
 			downloadButton.layer.shadowRadius = 3;
 			downloadButton.layer.masksToBounds = NO;
 
-			ThetaSetCaptureHiding(downloadButton);
+			ZeusSetCaptureHiding(downloadButton);
 			[self addSubview:downloadButton];
-            theta_configureReelDownloadMenu(downloadButton, self);
+            zeus_configureReelDownloadMenu(downloadButton, self);
 
 			if ([self respondsToSelector:@selector(ufiLikeButton)]) {
 				[NSLayoutConstraint activateConstraints:@[
@@ -1692,12 +1753,12 @@ static void hook_sundialViewerVerticalUFI(IGSundialViewerVerticalUFI *self, SEL 
     }
 }
 
-void THRegisterSavePostHook(void) {
+void ZURegisterSavePostHook(void) {
     NullHookMessageIfPresent(objc_getClass("IGUFIInteractionCountsView"), @selector(layoutSubviews), (void *)hook_savePost, &orig_savePost);
 }
 
-void THRegisterSundialViewerUFIHooks(void) {
-    Class ufiClass = ThetaFirstClass(@[
+void ZURegisterSundialViewerUFIHooks(void) {
+    Class ufiClass = ZeusFirstClass(@[
         @"_TtC26IGSundialViewerVerticalUFI26IGSundialViewerVerticalUFI",
         @"IGSundialViewerVerticalUFI"
     ]);

@@ -9,12 +9,12 @@
 #import <AVFoundation/AVFoundation.h>
 #import <dlfcn.h>
 #import "Include/rootless.h"
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 #import "Include/AV1Transcoder.h"
-#import "Include/ThetaDashManifest.h"
+#import "Include/ZeusDashManifest.h"
 
 // Global guard to prevent concurrent downloads
-static volatile BOOL sThetaDownloadInProgress = NO;
+static volatile BOOL sZeusDownloadInProgress = NO;
 
 // Helper functions for cleaner code
 static void cleanupTemporaryFiles(NSString *videoPath, NSString *audioPath, NSString *outputPath) {
@@ -60,13 +60,13 @@ static void showCompletionToast(CustomToastView *progressToast, BOOL success, NS
 
 + (BOOL)isDownloadInProgress {
     @synchronized(self) {
-        return sThetaDownloadInProgress;
+        return sZeusDownloadInProgress;
     }
 }
 
 + (void)setDownloadInProgress:(BOOL)inProgress {
     @synchronized(self) {
-        sThetaDownloadInProgress = inProgress;
+        sZeusDownloadInProgress = inProgress;
     }
 }
 
@@ -130,7 +130,7 @@ static void showCompletionToast(CustomToastView *progressToast, BOOL success, NS
     self.selectAllButton = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 100, 30)];
     [self.selectAllButton setTitle:@"Select All" forState:UIControlStateNormal];
     self.selectAllButton.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-    	self.selectAllButton.tintColor = [ThetaHelper iotaPinkColor];
+    	self.selectAllButton.tintColor = [ZeusHelper iotaPinkColor];
     [self updateSelectAllButtonColor];
     [self.selectAllButton addTarget:self action:@selector(selectAllButtonTapped) forControlEvents:UIControlEventTouchUpInside];
 
@@ -138,7 +138,7 @@ static void showCompletionToast(CustomToastView *progressToast, BOOL success, NS
         [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"xmark"] style:UIBarButtonItemStylePlain target:self action:@selector(dismissView)],
         [[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"checkmark.circle"] style:UIBarButtonItemStylePlain target:self action:@selector(selectAllButtonTapped)]
     ];
-    	self.navigationController.navigationBar.tintColor = [ThetaHelper iotaPinkColor];
+    	self.navigationController.navigationBar.tintColor = [ZeusHelper iotaPinkColor];
     // Use iOS 16+ SF Symbol with fallback for older versions
     UIImage *downloadImage;
     if (@available(iOS 16.0, *)) {
@@ -364,7 +364,7 @@ static void showCompletionToast(CustomToastView *progressToast, BOOL success, NS
     return [UIColor colorWithRed:averageRed green:averageGreen blue:averageBlue alpha:1.0];
 }
 
-static BOOL ThetaPreviewImageIsPlaceholder(UIImage *image) {
+static BOOL ZeusPreviewImageIsPlaceholder(UIImage *image) {
     if (!image) return YES;
     if (@available(iOS 13.0, *)) {
         if (image.isSymbolImage) return YES;
@@ -412,7 +412,7 @@ static BOOL ThetaPreviewImageIsPlaceholder(UIImage *image) {
             return;
         }
         UIImage *image = [UIImage imageWithData:data];
-        completion(ThetaPreviewImageIsPlaceholder(image) ? nil : image);
+        completion(ZeusPreviewImageIsPlaceholder(image) ? nil : image);
     }];
     [task resume];
 }
@@ -425,7 +425,7 @@ static BOOL ThetaPreviewImageIsPlaceholder(UIImage *image) {
     if (!urlString.length) return;
 
     UIImage *existing = [self.previewCache objectForKey:urlString];
-    if ([existing isKindOfClass:[UIImage class]] && !ThetaPreviewImageIsPlaceholder(existing)) {
+    if ([existing isKindOfClass:[UIImage class]] && !ZeusPreviewImageIsPlaceholder(existing)) {
         return;
     }
 
@@ -529,7 +529,7 @@ static void * const playerKey = &playerKey;
     CAShapeLayer *borderLayer = [CAShapeLayer layer];
     borderLayer.path = [UIBezierPath bezierPathWithRoundedRect:cardView.bounds cornerRadius:20].CGPath;
     borderLayer.lineWidth = 3.0;
-    borderLayer.strokeColor = [ThetaHelper iotaPinkColor].CGColor;
+    borderLayer.strokeColor = [ZeusHelper iotaPinkColor].CGColor;
     borderLayer.fillColor = [UIColor clearColor].CGColor;
     borderLayer.frame = cardView.bounds;
 
@@ -710,13 +710,13 @@ static void * const playerKey = &playerKey;
     // that blocked async preview downloads and left the carousel looking empty.
     UIImage *cachedImage = urlString.length ? [self.previewCache objectForKey:urlString] : nil;
     UIImage *dictPreview = mediaItem[@"preview"];
-    if ([cachedImage isKindOfClass:[UIImage class]] && !ThetaPreviewImageIsPlaceholder(cachedImage)) {
+    if ([cachedImage isKindOfClass:[UIImage class]] && !ZeusPreviewImageIsPlaceholder(cachedImage)) {
         imageView.image = cachedImage;
-    } else if ([dictPreview isKindOfClass:[UIImage class]] && !ThetaPreviewImageIsPlaceholder(dictPreview)) {
+    } else if ([dictPreview isKindOfClass:[UIImage class]] && !ZeusPreviewImageIsPlaceholder(dictPreview)) {
         imageView.image = dictPreview;
         if (urlString.length) [self.previewCache setObject:dictPreview forKey:urlString];
     } else {
-        imageView.image = ThetaPreviewImageIsPlaceholder(dictPreview) ? dictPreview : [UIImage systemImageNamed:@"photo"];
+        imageView.image = ZeusPreviewImageIsPlaceholder(dictPreview) ? dictPreview : [UIImage systemImageNamed:@"photo"];
         imageView.tintColor = [UIColor colorWithWhite:1 alpha:0.35];
         imageView.contentMode = UIViewContentModeCenter;
         if (urlString.length) {
@@ -892,7 +892,7 @@ static void * const playerKey = &playerKey;
         borderLayer = [CAShapeLayer layer];
         borderLayer.path = [UIBezierPath bezierPathWithRoundedRect:cardView.bounds cornerRadius:20].CGPath;
         borderLayer.lineWidth = 3.0;
-        borderLayer.strokeColor = [ThetaHelper iotaPinkColor].CGColor;
+        borderLayer.strokeColor = [ZeusHelper iotaPinkColor].CGColor;
         borderLayer.fillColor = [UIColor clearColor].CGColor;
         borderLayer.frame = cardView.bounds;
     }
@@ -931,7 +931,7 @@ static void * const playerKey = &playerKey;
     if ([MediaSelectionViewController isDownloadInProgress]) {
         UIImage *hourglass = [UIImage systemImageNamed:@"hourglass"];
         hourglass = [hourglass imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-        hourglass = [hourglass imageWithTintColor:[ThetaHelper iotaPinkColor]];
+        hourglass = [hourglass imageWithTintColor:[ZeusHelper iotaPinkColor]];
         [self showToastWithTitle:@"Download in progress!" subtitle:@"Please wait for download to finish." icon:hourglass seconds:3 openURL:nil];
         return;
     }
@@ -1432,8 +1432,8 @@ static void * const playerKey = &playerKey;
     
     __block NSTimeInterval bulkProcessStartTime = [[NSDate date] timeIntervalSince1970];
     
-    dispatch_queue_t statsQueue = dispatch_queue_create("com.theta.bulkstats", DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_t processingQueue = dispatch_queue_create("com.theta.bulkdownload", DISPATCH_QUEUE_CONCURRENT);
+    dispatch_queue_t statsQueue = dispatch_queue_create("com.zeus.bulkstats", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_t processingQueue = dispatch_queue_create("com.zeus.bulkdownload", DISPATCH_QUEUE_CONCURRENT);
     
     // Track progress for each video
     NSMutableDictionary<NSNumber *, NSMutableDictionary *> *videoProgress = [NSMutableDictionary dictionary];
@@ -1652,7 +1652,7 @@ static void * const playerKey = &playerKey;
                     return;
                 }
                 if (hasAudio) {
-                    NSString *preparedAudio = ThetaPrepareDashAudioForMerge(audioPath);
+                    NSString *preparedAudio = ZeusPrepareDashAudioForMerge(audioPath);
                     if (preparedAudio.length) {
                         audioPath = preparedAudio;
                     } else {
@@ -1720,7 +1720,7 @@ static void * const playerKey = &playerKey;
                     if (!transcodeSuccess) {
                         NSLog(@"AV1 transcoding failed for video %ld (%@); trying native export", (long)videoIndex, transcodeError);
                         if ([fm fileExistsAtPath:outputPath]) [fm removeItemAtPath:outputPath error:nil];
-                        if (!ThetaExportPhotosCompatibleMP4(videoPath, audioPath, hasAudio, outputPath)) {
+                        if (!ZeusExportPhotosCompatibleMP4(videoPath, audioPath, hasAudio, outputPath)) {
                             NSError *copyErr = nil;
                             if (![fm copyItemAtPath:videoPath toPath:outputPath error:&copyErr]) {
                                 NSLog(@"Bulk %ld: could not copy original after transcode failure: %@", (long)videoIndex, copyErr);
@@ -1857,7 +1857,7 @@ static void * const playerKey = &playerKey;
                     // For sideload builds, copy to Caches and use ALAssetsLibrary
                     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
                     NSString *cachesDir = [paths firstObject];
-                    NSString *cacheVideoPath = [cachesDir stringByAppendingPathComponent:[NSString stringWithFormat:@"theta_bulk_%ld_%@.mp4", (long)videoIndex, [[NSUUID UUID] UUIDString]]];
+                    NSString *cacheVideoPath = [cachesDir stringByAppendingPathComponent:[NSString stringWithFormat:@"zeus_bulk_%ld_%@.mp4", (long)videoIndex, [[NSUUID UUID] UUIDString]]];
                     
                     NSError *copyError = nil;
                     if ([fm copyItemAtPath:outputPath toPath:cacheVideoPath error:&copyError]) {
@@ -1914,7 +1914,7 @@ static void * const playerKey = &playerKey;
                     #else
                     // Jailbreak: Photos import (creation-request path when available)
                     NSURL *outputURL = [NSURL fileURLWithPath:outputPath];
-                    ThetaPhotoLibraryImportVideoFromURL(outputURL, ^(BOOL success, NSError *error) {
+                    ZeusPhotoLibraryImportVideoFromURL(outputURL, ^(BOOL success, NSError *error) {
                         // Cleanup
                         [fm removeItemAtPath:videoPath error:nil];
                         if (audioPath) [fm removeItemAtPath:audioPath error:nil];
@@ -2297,7 +2297,7 @@ static void * const playerKey = &playerKey;
 // Convert a media file to MP3 using FFmpegKit. On success returns output .mp3 path and deletes input.
 - (void)convertFileToMP3:(NSString *)inputPath completion:(void(^)(NSString *outputPath, NSError *error))completion {
     if (inputPath.length == 0) {
-        if (completion) completion(nil, [NSError errorWithDomain:@"theta" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Empty input path"}]);
+        if (completion) completion(nil, [NSError errorWithDomain:@"zeus" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Empty input path"}]);
         return;
     }
 
@@ -2308,7 +2308,7 @@ static void * const playerKey = &playerKey;
     static dispatch_queue_t mp3ConversionQueue;
     static dispatch_once_t mp3OnceToken;
     dispatch_once(&mp3OnceToken, ^{
-        mp3ConversionQueue = dispatch_queue_create("theta.ffmpeg.mp3.queue", DISPATCH_QUEUE_SERIAL);
+        mp3ConversionQueue = dispatch_queue_create("zeus.ffmpeg.mp3.queue", DISPATCH_QUEUE_SERIAL);
     });
     dispatch_async(mp3ConversionQueue, ^{
         @autoreleasepool {
@@ -2347,7 +2347,7 @@ static void * const playerKey = &playerKey;
 
             if (!ffmpegkitHandle || !FFmpegKitClass) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (completion) completion(nil, [NSError errorWithDomain:@"theta" code:-2 userInfo:@{NSLocalizedDescriptionKey: @"FFmpegKit not available"}]);
+                    if (completion) completion(nil, [NSError errorWithDomain:@"zeus" code:-2 userInfo:@{NSLocalizedDescriptionKey: @"FFmpegKit not available"}]);
                 });
                 return;
             }
@@ -2356,7 +2356,7 @@ static void * const playerKey = &playerKey;
             NSMethodSignature *signature = [FFmpegKitClass methodSignatureForSelector:@selector(execute:)];
             if (!signature) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (completion) completion(nil, [NSError errorWithDomain:@"theta" code:-3 userInfo:@{NSLocalizedDescriptionKey: @"FFmpegKit execute: not found"}]);
+                    if (completion) completion(nil, [NSError errorWithDomain:@"zeus" code:-3 userInfo:@{NSLocalizedDescriptionKey: @"FFmpegKit execute: not found"}]);
                 });
                 return;
             }
@@ -2371,7 +2371,7 @@ static void * const playerKey = &playerKey;
                 [invocation getReturnValue:&session];
             } @catch (NSException *exception) {
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (completion) completion(nil, [NSError errorWithDomain:@"theta" code:-4 userInfo:@{NSLocalizedDescriptionKey: exception.reason ?: @"FFmpegKit exception"}]);
+                    if (completion) completion(nil, [NSError errorWithDomain:@"zeus" code:-4 userInfo:@{NSLocalizedDescriptionKey: exception.reason ?: @"FFmpegKit exception"}]);
                 });
                 return;
             }
@@ -2412,7 +2412,7 @@ static void * const playerKey = &playerKey;
                     }
                 }
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    if (completion) completion(nil, [NSError errorWithDomain:@"theta" code:-5 userInfo:@{NSLocalizedDescriptionKey: @"MP3 conversion failed"}]);
+                    if (completion) completion(nil, [NSError errorWithDomain:@"zeus" code:-5 userInfo:@{NSLocalizedDescriptionKey: @"MP3 conversion failed"}]);
                 });
                 return;
             }

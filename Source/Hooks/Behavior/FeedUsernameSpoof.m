@@ -22,7 +22,7 @@ static id hook_feedItemHeader(id self, SEL _cmd) {
     return easterEggs[randomIndex];
 }
 
-void THRegisterFeedUsernameSpoofHooks(void) {
+void ZURegisterFeedUsernameSpoofHooks(void) {
     // IGFeedItemHeader / similar username provider — best-effort across versions.
     Class cls = objc_getClass("IGFeedItemHeader");
     if (!cls) cls = objc_getClass("IGFeedItemHeaderViewModel");

@@ -8,3 +8,7 @@ TweakCOMPILE.xm
 default.profraw
 tools/insert_dylib
 input/Payload/
+build_cyan/
+output_lief/
+*.bak
+*.bak2

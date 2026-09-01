@@ -22,7 +22,7 @@ static const NSTimeInterval kFetchDelay = 1.0;
     dispatch_once(&onceToken, ^{
         _processedIDs = [NSMutableArray new];
         _overlayQueue = [NSMutableArray new];
-        _syncQueue = dispatch_queue_create("com.theta.gifoverlay.sync", DISPATCH_QUEUE_SERIAL);
+        _syncQueue = dispatch_queue_create("com.zeus.gifoverlay.sync", DISPATCH_QUEUE_SERIAL);
     });
 }
 
@@ -67,7 +67,7 @@ static const NSTimeInterval kFetchDelay = 1.0;
         lbl.clipsToBounds = YES;
         lbl.alpha = 0;
 
-        ThetaSetCaptureHiding(lbl);
+        ZeusSetCaptureHiding(lbl);
         [win addSubview:lbl];
 
         dispatch_async(_syncQueue, ^{

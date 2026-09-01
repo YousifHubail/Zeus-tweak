@@ -1,16 +1,16 @@
 #import "Include/SettingsViewController.h"
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 
 static void (*orig_tabbar)(id self, SEL _cmd);
 static void (*orig_layoutTabBar)(id self, SEL _cmd);
 
-static const void *kThetaMessengerSettingsLPKey = &kThetaMessengerSettingsLPKey;
+static const void *kZeusMessengerSettingsLPKey = &kZeusMessengerSettingsLPKey;
 
-@interface ThetaMessengerSettingsLongPressTarget : NSObject
+@interface ZeusMessengerSettingsLongPressTarget : NSObject
 @end
 
-@implementation ThetaMessengerSettingsLongPressTarget
+@implementation ZeusMessengerSettingsLongPressTarget
 
 - (void)handleDMLongPress:(UILongPressGestureRecognizer *)gr {
     if (gr.state != UIGestureRecognizerStateBegan) {
@@ -32,16 +32,16 @@ static const void *kThetaMessengerSettingsLPKey = &kThetaMessengerSettingsLPKey;
 
 @end
 
-static ThetaMessengerSettingsLongPressTarget *theta_messengerSettingsLPTarget(void) {
-    static ThetaMessengerSettingsLongPressTarget *target;
+static ZeusMessengerSettingsLongPressTarget *zeus_messengerSettingsLPTarget(void) {
+    static ZeusMessengerSettingsLongPressTarget *target;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        target = [ThetaMessengerSettingsLongPressTarget new];
+        target = [ZeusMessengerSettingsLongPressTarget new];
     });
     return target;
 }
 
-static void theta_detachMessengerSettingsLongPressFromDirectInbox(id tabBarController) {
+static void zeus_detachMessengerSettingsLongPressFromDirectInbox(id tabBarController) {
     UIView *dm = nil;
     @try {
         dm = [tabBarController valueForKey:@"_directInboxButton"];
@@ -50,16 +50,16 @@ static void theta_detachMessengerSettingsLongPressFromDirectInbox(id tabBarContr
     if (![dm isKindOfClass:[UIView class]]) {
         return;
     }
-    UILongPressGestureRecognizer *existing = objc_getAssociatedObject(dm, kThetaMessengerSettingsLPKey);
+    UILongPressGestureRecognizer *existing = objc_getAssociatedObject(dm, kZeusMessengerSettingsLPKey);
     if (existing) {
         [dm removeGestureRecognizer:existing];
-        objc_setAssociatedObject(dm, kThetaMessengerSettingsLPKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(dm, kZeusMessengerSettingsLPKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
 }
 
-static void theta_attachMessengerSettingsLongPressToDirectInboxIfNeeded(id tabBarController) {
+static void zeus_attachMessengerSettingsLongPressToDirectInboxIfNeeded(id tabBarController) {
     if (!ENABLED(@"Messenger Mode")) {
-        theta_detachMessengerSettingsLongPressFromDirectInbox(tabBarController);
+        zeus_detachMessengerSettingsLongPressFromDirectInbox(tabBarController);
         return;
     }
     UIView *dm = nil;
@@ -70,19 +70,19 @@ static void theta_attachMessengerSettingsLongPressToDirectInboxIfNeeded(id tabBa
     if (![dm isKindOfClass:[UIView class]]) {
         return;
     }
-    if (objc_getAssociatedObject(dm, kThetaMessengerSettingsLPKey)) {
+    if (objc_getAssociatedObject(dm, kZeusMessengerSettingsLPKey)) {
         return;
     }
-    UILongPressGestureRecognizer *lp = [[UILongPressGestureRecognizer alloc] initWithTarget:theta_messengerSettingsLPTarget()
+    UILongPressGestureRecognizer *lp = [[UILongPressGestureRecognizer alloc] initWithTarget:zeus_messengerSettingsLPTarget()
                                                                                       action:@selector(handleDMLongPress:)];
     lp.minimumPressDuration = 0.5;
     [dm addGestureRecognizer:lp];
-    objc_setAssociatedObject(dm, kThetaMessengerSettingsLPKey, lp, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(dm, kZeusMessengerSettingsLPKey, lp, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static void hook_layoutTabBar(id self, SEL _cmd) {
     orig_layoutTabBar(self, _cmd);
-    theta_attachMessengerSettingsLongPressToDirectInboxIfNeeded(self);
+    zeus_attachMessengerSettingsLongPressToDirectInboxIfNeeded(self);
 }
 
 static void hook_tabbar(id self, SEL _cmd) {
@@ -106,7 +106,7 @@ static void hook_tabbar(id self, SEL _cmd) {
     }
 }
 
-void THRegisterTabBarHooks(void) {
+void ZURegisterTabBarHooks(void) {
     Class cls = objc_getClass("IGTabBarController");
     NullHookMessageEx(cls, @selector(_homeButtonLongPressed:), (void *)hook_tabbar, &orig_tabbar);
     NullHookMessageEx(cls, @selector(_layoutTabBar), (void *)hook_layoutTabBar, &orig_layoutTabBar);

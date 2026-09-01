@@ -27,7 +27,7 @@ static void hook_toastView_layoutSubviews(id self, SEL _cmd) {
     v.transform = CGAffineTransformMakeTranslation(0, translationY);
 }
 
-void THRegisterToastDismissHooks(void) {
+void ZURegisterToastDismissHooks(void) {
     NullHookMessageIfPresent(objc_getClass("IGNotificationPresenter"),
                              NSSelectorFromString(@"dismissAnimated:"),
                              (void *)hook_IGNotificationPresenter_dismissAnimated,

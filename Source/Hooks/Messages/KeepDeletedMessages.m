@@ -7,10 +7,14 @@ static void hook_messageCache(id self, SEL _cmd, id update) {
 
 	if (update) {
 		id retained = update;
-		static char kThetaRetainedUpdateKey;
-		objc_setAssociatedObject(self, &kThetaRetainedUpdateKey, retained, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		static char kZeusRetainedUpdateKey;
+		objc_setAssociatedObject(self, &kZeusRetainedUpdateKey, retained, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		NSString *debugDescription = [retained respondsToSelector:@selector(debugDescription)] ? [retained debugDescription] : [retained description];
+		// Removed: this built a full -debugDescription of the entire thread-update
+		// payload on every update and then threw the string away. It is a recursive
+		// walk of the whole model graph, on the main thread, in a hook that fires for
+		// every DM thread change -- pinning or unpinning a chat reorders the inbox and
+		// produces a large payload, which stalled the app for as long as the walk took.
 
 		id cacheThreadUpdate = nil;
 		if ([retained isKindOfClass:[NSArray class]] && [(NSArray *)retained count] > 0) {
@@ -30,8 +34,8 @@ static void hook_messageCache(id self, SEL _cmd, id update) {
 		}
 
 		if (threadUpdateObj) {
-			static char kThetaRetainedThreadUpdateKey;
-			objc_setAssociatedObject(self, &kThetaRetainedThreadUpdateKey, threadUpdateObj, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+			static char kZeusRetainedThreadUpdateKey;
+			objc_setAssociatedObject(self, &kZeusRetainedThreadUpdateKey, threadUpdateObj, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 			@try {
 				id messageUpdate = [threadUpdateObj valueForKey:@"_messageUpdate"];
 				if (messageUpdate) {
@@ -81,8 +85,8 @@ static void hook_messageCache(id self, SEL _cmd, id update) {
  	[deletedButton setImage:[UIImage systemImageNamed:@"trash.circle"] forState:UIControlStateNormal];
  	[deletedButton setTintColor:UIColor.systemRedColor];
 	deletedButton.translatesAutoresizingMaskIntoConstraints = NO;
-	static char kThetaDeletedServerIdKey;
-	objc_setAssociatedObject(deletedButton, &kThetaDeletedServerIdKey, serverId, OBJC_ASSOCIATION_COPY_NONATOMIC);
+	static char kZeusDeletedServerIdKey;
+	objc_setAssociatedObject(deletedButton, &kZeusDeletedServerIdKey, serverId, OBJC_ASSOCIATION_COPY_NONATOMIC);
 
  	UIView *container = nil;
  	if ([self respondsToSelector:@selector(contentViewForVisualMessageViewerPresentation)]) {
@@ -103,7 +107,7 @@ static void hook_messageCache(id self, SEL _cmd, id update) {
  		if ([sub isKindOfClass:[UIButton class]] && sub.tag == 9911) { return; }
  	}
  	deletedButton.tag = 9911;
- 	ThetaSetCaptureHiding(deletedButton);
+ 	ZeusSetCaptureHiding(deletedButton);
  	[container addSubview:deletedButton];
 
  	[NSLayoutConstraint activateConstraints:@[
@@ -115,21 +119,21 @@ static void hook_messageCache(id self, SEL _cmd, id update) {
 
 	if (@available(iOS 14.0, *)) {
 		[deletedButton addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-			NSString *sid = objc_getAssociatedObject(deletedButton, &kThetaDeletedServerIdKey);
+			NSString *sid = objc_getAssociatedObject(deletedButton, &kZeusDeletedServerIdKey);
 			NSString *deletedMessageDate = [[MessagesManager sharedManager] dateForDeletedMessageWithID:sid];
 			UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"BHInsta, Hi" message:[NSString stringWithFormat:@"Message deleted at: %@", deletedMessageDate ?: @"Unknown"] preferredStyle:UIAlertControllerStyleAlert];
 			[alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
 			[topMostController() presentViewController:alert animated:YES completion:nil];
 		}] forControlEvents:UIControlEventTouchUpInside];
 	}
-	[deletedButton addTarget:self action:@selector(_thetaShowDeletedInfo:) forControlEvents:UIControlEventTouchUpInside];
+	[deletedButton addTarget:self action:@selector(_zeusShowDeletedInfo:) forControlEvents:UIControlEventTouchUpInside];
 }*/
 
-static void _thetaShowDeletedInfo(id self, SEL _cmd, id sender) {
+static void _zeusShowDeletedInfo(id self, SEL _cmd, id sender) {
 	if (![sender isKindOfClass:[UIButton class]]) return;
 	UIButton *button = (UIButton *)sender;
-	static char kThetaDeletedServerIdKey;
-	NSString *sid = objc_getAssociatedObject(button, &kThetaDeletedServerIdKey);
+	static char kZeusDeletedServerIdKey;
+	NSString *sid = objc_getAssociatedObject(button, &kZeusDeletedServerIdKey);
 	if (sid.length == 0) return;
 	NSString *deletedMessageDate = [[MessagesManager sharedManager] dateForDeletedMessageWithID:sid];
 	UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"BHInsta, Hi" message:[NSString stringWithFormat:@"Message deleted at: %@", deletedMessageDate ?: @"Unknown"] preferredStyle:UIAlertControllerStyleAlert];
@@ -137,11 +141,11 @@ static void _thetaShowDeletedInfo(id self, SEL _cmd, id sender) {
 	[topMostController() presentViewController:alert animated:YES completion:nil];
 }
 
-static char kThetaOriginalBackgroundColorKey;
-static char kThetaProcessedMessageIdKey;
-static char kThetaOverlayViewKey;
+static char kZeusOriginalBackgroundColorKey;
+static char kZeusProcessedMessageIdKey;
+static char kZeusOverlayViewKey;
 
-static UIView *thetaFindMessageBubble(UIView *root) {
+static UIView *zeusFindMessageBubble(UIView *root) {
 	if (!root) return nil;
 	Class bubbleClass = NSClassFromString(@"IGDirectMessageBubbleView");
 	if (bubbleClass && [root isKindOfClass:bubbleClass]) return root;
@@ -151,39 +155,39 @@ static UIView *thetaFindMessageBubble(UIView *root) {
 		if ([className containsString:@"BubbleView"]) return sub;
 	}
 	for (UIView *sub in root.subviews) {
-		UIView *found = thetaFindMessageBubble(sub);
+		UIView *found = zeusFindMessageBubble(sub);
 		if (found) return found;
 	}
 	return nil;
 }
 
-static UIView *thetaFindFirstSubviewOfClass(UIView *root, Class cls) {
+static UIView *zeusFindFirstSubviewOfClass(UIView *root, Class cls) {
 	if (!root || !cls) return nil;
 	for (UIView *sub in root.subviews) {
 		if ([sub isKindOfClass:cls]) return sub;
 	}
 	for (UIView *sub in root.subviews) {
-		UIView *found = thetaFindFirstSubviewOfClass(sub, cls);
+		UIView *found = zeusFindFirstSubviewOfClass(sub, cls);
 		if (found) return found;
 	}
 	return nil;
 }
 
 // Find: IGDirectMessageBubbleView (outer) -> IGDirectTextMessageBubbleView -> IGDirectMessageBubbleView (inner target)
-static UIView *thetaFindInnerTextMessageBubble(UIView *root) {
+static UIView *zeusFindInnerTextMessageBubble(UIView *root) {
 	if (!root) return nil;
 	Class outerBubble = NSClassFromString(@"IGDirectMessageBubbleView");
 	Class textBubble = NSClassFromString(@"IGDirectTextMessageBubbleView");
 	Class innerBubble = NSClassFromString(@"IGDirectMessageBubbleView");
 
-	UIView *outer = thetaFindFirstSubviewOfClass(root, outerBubble) ?: root;
-	UIView *text = thetaFindFirstSubviewOfClass(outer, textBubble);
+	UIView *outer = zeusFindFirstSubviewOfClass(root, outerBubble) ?: root;
+	UIView *text = zeusFindFirstSubviewOfClass(outer, textBubble);
 	if (!text) {
 		// Sometimes the text bubble may be deeper under root
-		text = thetaFindFirstSubviewOfClass(root, textBubble);
+		text = zeusFindFirstSubviewOfClass(root, textBubble);
 	}
 	if (!text) return nil;
-	UIView *inner = thetaFindFirstSubviewOfClass(text, innerBubble);
+	UIView *inner = zeusFindFirstSubviewOfClass(text, innerBubble);
 	return inner ?: nil;
 }
 
@@ -212,21 +216,21 @@ static void hook_directMessageCell_configure(id self, SEL _cmd, id viewModel, id
 	}
 	if (!container) return;
 
-	UIView *bubble = thetaFindInnerTextMessageBubble(container);
-	if (!bubble) bubble = thetaFindMessageBubble(container);
+	UIView *bubble = zeusFindInnerTextMessageBubble(container);
+	if (!bubble) bubble = zeusFindMessageBubble(container);
 	if (!bubble) bubble = container;
 
-	UIColor *originalBackgroundColor = objc_getAssociatedObject(bubble, &kThetaOriginalBackgroundColorKey);
+	UIColor *originalBackgroundColor = objc_getAssociatedObject(bubble, &kZeusOriginalBackgroundColorKey);
 	if (!originalBackgroundColor) {
 		@try {
 			originalBackgroundColor = [bubble valueForKey:@"backgroundColor"];
 			if (originalBackgroundColor) {
-				objc_setAssociatedObject(bubble, &kThetaOriginalBackgroundColorKey, originalBackgroundColor, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+				objc_setAssociatedObject(bubble, &kZeusOriginalBackgroundColorKey, originalBackgroundColor, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 			}
 		} @catch (__unused NSException *e) {}
 	}
 
-	NSString *processedServerId = objc_getAssociatedObject(bubble, &kThetaProcessedMessageIdKey);
+	NSString *processedServerId = objc_getAssociatedObject(bubble, &kZeusProcessedMessageIdKey);
 	if ([processedServerId isKindOfClass:[NSString class]] && [processedServerId isEqualToString:serverId]) {
 		return;
 	}
@@ -262,14 +266,14 @@ static void hook_directMessageCell_configure(id self, SEL _cmd, id viewModel, id
 				}
 			}
 			// 3) Ensure a persistent visual using an overlay if needed
-			UIView *overlay = objc_getAssociatedObject(bubble, &kThetaOverlayViewKey);
+			UIView *overlay = objc_getAssociatedObject(bubble, &kZeusOverlayViewKey);
 			if (!overlay) {
 				overlay = [[UIView alloc] initWithFrame:bubble.bounds];
 				overlay.userInteractionEnabled = NO;
 				overlay.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 				overlay.layer.cornerRadius = bubble.layer.cornerRadius;
 				overlay.layer.masksToBounds = YES;
-				objc_setAssociatedObject(bubble, &kThetaOverlayViewKey, overlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+				objc_setAssociatedObject(bubble, &kZeusOverlayViewKey, overlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 				// Put behind content but inside bubble
 				[bubble insertSubview:overlay atIndex:0];
 			}
@@ -277,7 +281,7 @@ static void hook_directMessageCell_configure(id self, SEL _cmd, id viewModel, id
 		} @catch (__unused NSException *e) {}
 	}
 
-	objc_setAssociatedObject(bubble, &kThetaProcessedMessageIdKey, serverId, OBJC_ASSOCIATION_COPY_NONATOMIC);
+	objc_setAssociatedObject(bubble, &kZeusProcessedMessageIdKey, serverId, OBJC_ASSOCIATION_COPY_NONATOMIC);
 }
 
 static void (*orig_messageCache2)(id self, SEL _cmd, id updates, id completion);
@@ -291,10 +295,14 @@ static void hook_messageCache2(id self, SEL _cmd, id updates, id completion) {
 
 	if (updates) {
 		id retained = updates;
-		static char kThetaRetainedUpdateKey;
-		objc_setAssociatedObject(self, &kThetaRetainedUpdateKey, retained, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		static char kZeusRetainedUpdateKey;
+		objc_setAssociatedObject(self, &kZeusRetainedUpdateKey, retained, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		NSString *debugDescription = [retained respondsToSelector:@selector(debugDescription)] ? [retained debugDescription] : [retained description];
+		// Removed: this built a full -debugDescription of the entire thread-update
+		// payload on every update and then threw the string away. It is a recursive
+		// walk of the whole model graph, on the main thread, in a hook that fires for
+		// every DM thread change -- pinning or unpinning a chat reorders the inbox and
+		// produces a large payload, which stalled the app for as long as the walk took.
 
 		id cacheThreadUpdate = nil;
 		if ([retained isKindOfClass:[NSArray class]] && [(NSArray *)retained count] > 0) {
@@ -314,8 +322,8 @@ static void hook_messageCache2(id self, SEL _cmd, id updates, id completion) {
 		}
 
 		if (threadUpdateObj) {
-			static char kThetaRetainedThreadUpdateKey;
-			objc_setAssociatedObject(self, &kThetaRetainedThreadUpdateKey, threadUpdateObj, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+			static char kZeusRetainedThreadUpdateKey;
+			objc_setAssociatedObject(self, &kZeusRetainedThreadUpdateKey, threadUpdateObj, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 			@try {
 				id messageUpdate = [threadUpdateObj valueForKey:@"_messageUpdate"];
 				if (messageUpdate) {
@@ -383,10 +391,14 @@ static void hook_messageCache3(id self, SEL _cmd, id updates, id completion, id 
 
 	if (updates) {
 		id retained = updates;
-		static char kThetaRetainedUpdateKey;
-		objc_setAssociatedObject(self, &kThetaRetainedUpdateKey, retained, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		static char kZeusRetainedUpdateKey;
+		objc_setAssociatedObject(self, &kZeusRetainedUpdateKey, retained, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		NSString *debugDescription = [retained respondsToSelector:@selector(debugDescription)] ? [retained debugDescription] : [retained description];
+		// Removed: this built a full -debugDescription of the entire thread-update
+		// payload on every update and then threw the string away. It is a recursive
+		// walk of the whole model graph, on the main thread, in a hook that fires for
+		// every DM thread change -- pinning or unpinning a chat reorders the inbox and
+		// produces a large payload, which stalled the app for as long as the walk took.
 
 		id cacheThreadUpdate = nil;
 		if ([retained isKindOfClass:[NSArray class]] && [(NSArray *)retained count] > 0) {
@@ -406,8 +418,8 @@ static void hook_messageCache3(id self, SEL _cmd, id updates, id completion, id 
 		}
 
 		if (threadUpdateObj) {
-			static char kThetaRetainedThreadUpdateKey;
-			objc_setAssociatedObject(self, &kThetaRetainedThreadUpdateKey, threadUpdateObj, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+			static char kZeusRetainedThreadUpdateKey;
+			objc_setAssociatedObject(self, &kZeusRetainedThreadUpdateKey, threadUpdateObj, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 			@try {
 				id messageUpdate = [threadUpdateObj valueForKey:@"_messageUpdate"];
 				if (messageUpdate) {
@@ -464,12 +476,12 @@ static void hook_messageCache3(id self, SEL _cmd, id updates, id completion, id 
 	orig_messageCache3(self, _cmd, updates, completion, userAccess);
 }
 
-void THRegisterKeepDeletedMessagesHooks(void) {
+void ZURegisterKeepDeletedMessagesHooks(void) {
 	Class applicator = objc_getClass("IGDirectCacheUpdatesApplicator");
 	NullHookMessageIfPresent(applicator, @selector(_applyThreadUpdates:completion:userAccess:), (void *)hook_messageCache3, &orig_messageCache3);
 	NullHookMessageIfPresent(applicator, @selector(_applyThreadUpdates:completion:), (void *)hook_messageCache2, &orig_messageCache2);
 
-	Class messageCell = ThetaFirstClass(@[
+	Class messageCell = ZeusFirstClass(@[
 		@"_TtC19IGDirectMessageCell19IGDirectMessageCell",
 		@"IGDirectMessageCell"
 	]);

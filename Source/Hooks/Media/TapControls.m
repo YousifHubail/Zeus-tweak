@@ -1,4 +1,4 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
@@ -45,7 +45,7 @@ static id hook_playbackConfig(id self, SEL _cmd,
                                 minSec, seekSec, tapSec, duration, shortScrubberEnabled);
 }
 
-void THRegisterTapControlsHooks(void) {
+void ZURegisterTapControlsHooks(void) {
     Class cls = objc_getClass("IGSundialPlaybackControlsTestConfiguration");
     if (!cls) return;
 

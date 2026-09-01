@@ -3,14 +3,14 @@
 static void (*orig_settingButtonInFeedView)(id self, SEL _cmd);
 
 // Per-instance guard key
-static char kThetaSettingsButtonOnceKey;
+static char kZeusSettingsButtonOnceKey;
 
 static void hook_settingButtonInFeedView(id self, SEL _cmd) {
 	if (orig_settingButtonInFeedView) orig_settingButtonInFeedView(self, _cmd);
 
 	@try {
 		// Ensure custom logic runs only once per instance
-		NSNumber *alreadyRan = objc_getAssociatedObject(self, &kThetaSettingsButtonOnceKey);
+		NSNumber *alreadyRan = objc_getAssociatedObject(self, &kZeusSettingsButtonOnceKey);
 		if ([alreadyRan boolValue]) {
 			return;
 		}
@@ -50,30 +50,31 @@ static void hook_settingButtonInFeedView(id self, SEL _cmd) {
 										 buttonSize.width,
 										 buttonSize.height);
 
-		ThetaSetCaptureHiding(settingsButton);
-		if (!ENABLED(@"Shake To Open")) {
-			[headerView addSubview:settingsButton];
-		}
+		ZeusSetCaptureHiding(settingsButton);
+		// Always add the gear. It used to be suppressed whenever Shake To Open was
+		// enabled, leaving no visible entry point at all if the shake hook or the
+		// tab-bar long-press ever stopped firing.
+		[headerView addSubview:settingsButton];
 
 		[settingsButton addAction:[UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
 			@try {
 				SettingsViewController *settingsVC = [[SettingsViewController alloc] init];
 				UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:settingsVC];
 				navController.modalPresentationStyle = UIModalPresentationPageSheet;
-				[[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+				[[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
 			} @catch (NSException *exception) {
 				NSLog(@"Error presenting settings: %@", exception);
 			}
 		}] forControlEvents:UIControlEventTouchUpInside];
 
-		objc_setAssociatedObject(self, &kThetaSettingsButtonOnceKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		objc_setAssociatedObject(self, &kZeusSettingsButtonOnceKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 	} @catch (NSException *exception) {
-		NSLog(@"[Theta] SettingsButton layout hook: %@", exception);
+		NSLog(@"[Zeus] SettingsButton layout hook: %@", exception);
 	}
 }
 
-void THRegisterSettingsButtonHooks(void) {
-    Class header = ThetaFirstClass(@[
+void ZURegisterSettingsButtonHooks(void) {
+    Class header = ZeusFirstClass(@[
         @"_TtC16IGHomeFeedHeader20IGHomeFeedHeaderView",
         @"IGHomeFeedHeaderView"
     ]);

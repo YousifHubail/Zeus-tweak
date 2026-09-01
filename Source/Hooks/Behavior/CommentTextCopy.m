@@ -1,4 +1,4 @@
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 #import <Photos/Photos.h>
 
 // UIButton(BlockTarget) is implemented in StoryGhost.m (later in amalgamation); declare so CommentTextCopy can compile first.
@@ -272,7 +272,7 @@ static void copyCommentText(id self) {
                 @"handler": ^(id sender) {
                     [UIPasteboard generalPasteboard].string = capturedURL.absoluteString;
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Copied" subtitle:@"Media URL copied to clipboard." icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:2 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Copied" subtitle:@"Media URL copied to clipboard." icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:2 openURL:nil];
                     }
                 }
             }];
@@ -287,11 +287,11 @@ static void copyCommentText(id self) {
                                 if (name && name.length > 0) {
                                     [UIPasteboard generalPasteboard].string = name;
                                     if (ENABLED(@"Show Banners")) {
-                                        [ThetaHelper showToastWithTitle:@"GIF name copied" subtitle:name icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:2 openURL:nil];
+                                        [ZeusHelper showToastWithTitle:@"GIF name copied" subtitle:name icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:2 openURL:nil];
                                     }
                                 } else {
                                     if (ENABLED(@"Show Banners")) {
-                                        [ThetaHelper showToastWithTitle:@"Failed" subtitle:@"Could not fetch GIF name." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                                        [ZeusHelper showToastWithTitle:@"Failed" subtitle:@"Could not fetch GIF name." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                                     }
                                 }
                             });
@@ -309,7 +309,7 @@ static void copyCommentText(id self) {
                             safeDownloadAnimatedImage(urlToDownload);
                         } @catch (NSException *exception) {
                             if (ENABLED(@"Show Banners")) {
-                                [ThetaHelper showToastWithTitle:@"Download Failed" subtitle:[NSString stringWithFormat:@"Error: %@", exception.reason] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                                [ZeusHelper showToastWithTitle:@"Download Failed" subtitle:[NSString stringWithFormat:@"Error: %@", exception.reason] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                             }
                         }
                     });
@@ -323,7 +323,7 @@ static void copyCommentText(id self) {
                 }
             }];
             
-            [ThetaHelper showCustomAlertWithActions:@"Media Found" description:@"This comment contains a GIF or image. What would you like to do?" actions:actions];
+            [ZeusHelper showCustomAlertWithActions:@"Media Found" description:@"This comment contains a GIF or image. What would you like to do?" actions:actions];
             return;
         }
         
@@ -339,7 +339,7 @@ static void copyCommentText(id self) {
             lastCopyTime = currentTime;
             [UIPasteboard generalPasteboard].string = commentText;
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Copied" subtitle:@"Comment text copied to clipboard." icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:2 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Copied" subtitle:@"Comment text copied to clipboard." icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:2 openURL:nil];
             }
         }
     } @catch (NSException *exception) {
@@ -443,7 +443,7 @@ static void downloadAnimatedImage(NSURL *url) {
             if (error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Download Failed" subtitle:@"Failed to download media." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Download Failed" subtitle:@"Failed to download media." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                     }
                 });
                 return;
@@ -452,7 +452,7 @@ static void downloadAnimatedImage(NSURL *url) {
             if (!location) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Download Failed" subtitle:@"No file location received." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Download Failed" subtitle:@"No file location received." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                     }
                 });
                 return;
@@ -490,7 +490,7 @@ static void downloadAnimatedImage(NSURL *url) {
             if (fileError) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Download Failed" subtitle:@"Failed to save media file." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Download Failed" subtitle:@"Failed to save media file." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                     }
                 });
                 return;
@@ -500,7 +500,7 @@ static void downloadAnimatedImage(NSURL *url) {
             if (![[NSFileManager defaultManager] fileExistsAtPath:permanentFilePath]) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Download Failed" subtitle:@"File not found after download." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Download Failed" subtitle:@"File not found after download." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                     }
                 });
                 return;
@@ -528,7 +528,7 @@ static void downloadAnimatedImage(NSURL *url) {
                             if (error) {
                                 dispatch_async(dispatch_get_main_queue(), ^{
                                     if (ENABLED(@"Show Banners")) {
-                                        [ThetaHelper showToastWithTitle:@"Save Failed" subtitle:[NSString stringWithFormat:@"Failed to save to Photos: %@", error.localizedDescription] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                                        [ZeusHelper showToastWithTitle:@"Save Failed" subtitle:[NSString stringWithFormat:@"Failed to save to Photos: %@", error.localizedDescription] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                                     }
                                 });
                             } else if (success) {
@@ -536,7 +536,7 @@ static void downloadAnimatedImage(NSURL *url) {
                                 [[NSFileManager defaultManager] removeItemAtPath:permanentFilePath error:nil];
                                 dispatch_async(dispatch_get_main_queue(), ^{
                                     if (ENABLED(@"Show Banners")) {
-                                        [ThetaHelper showToastWithTitle:@"Saved to Camera Roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                                        [ZeusHelper showToastWithTitle:@"Saved to Camera Roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                                     }
                                 });
                             }
@@ -561,7 +561,7 @@ static void downloadAnimatedImage(NSURL *url) {
                 }
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Saved" subtitle:@"Media saved to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Saved" subtitle:@"Media saved to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:nil];
                     }
                 });
             }
@@ -571,7 +571,7 @@ static void downloadAnimatedImage(NSURL *url) {
     } @catch (NSException *exception) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Download Failed" subtitle:[NSString stringWithFormat:@"Error: %@", exception.reason] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Download Failed" subtitle:[NSString stringWithFormat:@"Error: %@", exception.reason] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
             }
         });
     }
@@ -701,7 +701,7 @@ static void hook_copyCommentText(id self, SEL _cmd) {
         
         // Add to the same superview as reference button
         if (referenceButton.superview) {
-            ThetaSetCaptureHiding(copyButton);
+            ZeusSetCaptureHiding(copyButton);
             [referenceButton.superview addSubview:copyButton];
             objc_setAssociatedObject(self, &kCommentTextCopyButtonKey, copyButton, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
@@ -710,7 +710,7 @@ static void hook_copyCommentText(id self, SEL _cmd) {
     }
 }
 
-void THRegisterCommentTextCopyHooks(void) {
+void ZURegisterCommentTextCopyHooks(void) {
     NullHookMessageEx(objc_getClass("IGCommentCellView.IGCommentCellView"), @selector(layoutSubviews), (void *)hook_copyCommentText, &orig_copyCommentText);
 }
 

@@ -1,18 +1,18 @@
-@interface ThetaPromoOnceTarget : NSObject
+@interface ZeusPromoOnceTarget : NSObject
 + (void)promoGotIt:(id)sender;
 @end
 
-@implementation ThetaPromoOnceTarget
+@implementation ZeusPromoOnceTarget
 + (void)promoGotIt:(id)sender {
-	[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Theta_DSPromoDialogSeen"];
+	[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Zeus_DSPromoDialogSeen"];
 }
 @end
 
-static BOOL thetaPromoSeen() {
-	return [[NSUserDefaults standardUserDefaults] boolForKey:@"Theta_DSPromoDialogSeen"];
+static BOOL zeusPromoSeen() {
+	return [[NSUserDefaults standardUserDefaults] boolForKey:@"Zeus_DSPromoDialogSeen"];
 }
 
-static void thetaRemovePromoOverlay(UIView *view) {
+static void zeusRemovePromoOverlay(UIView *view) {
 	if (!view) return;
 	// Walk up to find the topmost non-window container that likely owns the overlay
 	UIView *container = view;
@@ -43,7 +43,7 @@ static void thetaRemovePromoOverlay(UIView *view) {
 	}
 }
 
-static void thetaRemoveGlobalDimmingOverlays(UIWindow *window) {
+static void zeusRemoveGlobalDimmingOverlays(UIWindow *window) {
 	if (!window) return;
 	for (UIView *sub in [window.subviews copy]) {
 		BOOL isEffect = [sub isKindOfClass:NSClassFromString(@"UIVisualEffectView")];
@@ -61,28 +61,28 @@ static void thetaRemoveGlobalDimmingOverlays(UIWindow *window) {
 	}
 }
 
-static void thetaMarkSeenDeferred() {
-	[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Theta_DSPromoDialogSeen"];
+static void zeusMarkSeenDeferred() {
+	[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"Zeus_DSPromoDialogSeen"];
 }
 
-static void thetaCheckViewDismissed(__weak UIView *weakView, int remainingChecks) {
+static void zeusCheckViewDismissed(__weak UIView *weakView, int remainingChecks) {
 	if (remainingChecks <= 0) return;
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
 		UIView *v = weakView;
 		if (!v || v.window == nil) {
-			thetaMarkSeenDeferred();
+			zeusMarkSeenDeferred();
 			return;
 		}
-		thetaCheckViewDismissed(weakView, remainingChecks - 1);
+		zeusCheckViewDismissed(weakView, remainingChecks - 1);
 	});
 }
 
-static void thetaScheduleSeenMonitor(UIView *view) {
+static void zeusScheduleSeenMonitor(UIView *view) {
 	if (!view) return;
-	thetaCheckViewDismissed(view, 20);
+	zeusCheckViewDismissed(view, 20);
 }
 
-static BOOL thetaTriggerAnyTapGestureFromView(UIView *view) {
+static BOOL zeusTriggerAnyTapGestureFromView(UIView *view) {
 	if (!view) return NO;
 	NSArray<UIGestureRecognizer *> *grs = view.gestureRecognizers;
 	for (UIGestureRecognizer *gr in grs) {
@@ -106,17 +106,17 @@ static BOOL thetaTriggerAnyTapGestureFromView(UIView *view) {
 		}
 	}
 	for (UIView *sub in view.subviews) {
-		if (thetaTriggerAnyTapGestureFromView(sub)) return YES;
+		if (zeusTriggerAnyTapGestureFromView(sub)) return YES;
 	}
 	return NO;
 }
 
-static void thetaFireOneSyntheticTap(UIWindow *window) {
+static void zeusFireOneSyntheticTap(UIWindow *window) {
 	if (!window) return;
-	(void)thetaTriggerAnyTapGestureFromView(window);
+	(void)zeusTriggerAnyTapGestureFromView(window);
 }
 
-static UIViewController *thetaFindOwningViewController(UIView *view) {
+static UIViewController *zeusFindOwningViewController(UIView *view) {
 	if (!view) return nil;
 	UIResponder *responder = view;
 	while (responder) {
@@ -128,7 +128,7 @@ static UIViewController *thetaFindOwningViewController(UIView *view) {
 	return nil;
 }
 
-static BOOL thetaLooksLikePromoController(NSString *className) {
+static BOOL zeusLooksLikePromoController(NSString *className) {
 	if (className.length == 0) return NO;
 	return [className containsString:@"IGDSPromo"] ||
 		   [className containsString:@"PromoDialog"] ||
@@ -165,49 +165,49 @@ static void hook_hideIGDSPromoDialog(id self, SEL _cmd) {
 		}
 
 		// Helpers to press the "Got it" button if present
-		static BOOL (^thetaStringLooksLikeGotIt)(NSString *) = ^BOOL(NSString *s) {
+		static BOOL (^zeusStringLooksLikeGotIt)(NSString *) = ^BOOL(NSString *s) {
 			if (![s isKindOfClass:[NSString class]]) return NO;
 			NSString *t = [s stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 			if (t.length == 0) return NO;
 			return [t rangeOfString:@"got it" options:NSCaseInsensitiveSearch].location != NSNotFound;
 		};
-		static UIControl* (^thetaFindNearestControl)(UIView *) = ^UIControl* (UIView *v) {
+		static UIControl* (^zeusFindNearestControl)(UIView *) = ^UIControl* (UIView *v) {
 			UIView *p = v;
 			while (p && ![p isKindOfClass:[UIControl class]] && p != p.window) {
 				p = p.superview;
 			}
 			return [p isKindOfClass:[UIControl class]] ? (UIControl *)p : nil;
 		};
-		static UIControl* (^thetaFindGotItControlInView)(UIView *) = ^UIControl* (UIView *root) {
+		static UIControl* (^zeusFindGotItControlInView)(UIView *) = ^UIControl* (UIView *root) {
 			if (!root) return nil;
 			// Direct UIButton title match
 			if ([root isKindOfClass:[UIButton class]]) {
 				UIButton *btn = (UIButton *)root;
 				NSString *title = [btn titleForState:UIControlStateNormal] ?: btn.currentTitle ?: btn.titleLabel.text;
-				if (thetaStringLooksLikeGotIt(title)) return btn;
+				if (zeusStringLooksLikeGotIt(title)) return btn;
 			}
 			// Label inside custom view
 			if ([root isKindOfClass:[UILabel class]]) {
 				UILabel *lbl = (UILabel *)root;
-				if (thetaStringLooksLikeGotIt(lbl.text)) {
-					UIControl *ctl = thetaFindNearestControl(lbl);
+				if (zeusStringLooksLikeGotIt(lbl.text)) {
+					UIControl *ctl = zeusFindNearestControl(lbl);
 					if (ctl) return ctl;
 				}
 			}
 			// Accessibility label/title
 			NSString *ax = root.accessibilityLabel;
-			if (thetaStringLooksLikeGotIt(ax)) {
-				UIControl *ctl = thetaFindNearestControl(root);
+			if (zeusStringLooksLikeGotIt(ax)) {
+				UIControl *ctl = zeusFindNearestControl(root);
 				if (ctl) return ctl;
 			}
 			for (UIView *sub in root.subviews) {
-				UIControl *found = thetaFindGotItControlInView(sub);
+				UIControl *found = zeusFindGotItControlInView(sub);
 				if (found) return found;
 			}
 			return nil;
 		};
-		static BOOL (^thetaPressGotItIfPresent)(UIView *) = ^BOOL(UIView *root) {
-			UIControl *ctl = thetaFindGotItControlInView(root);
+		static BOOL (^zeusPressGotItIfPresent)(UIView *) = ^BOOL(UIView *root) {
+			UIControl *ctl = zeusFindGotItControlInView(root);
 			if (!ctl || !ctl.enabled || ctl.hidden || ctl.alpha <= 0.01) return NO;
 			@try {
 				[ctl sendActionsForControlEvents:UIControlEventTouchUpInside];
@@ -218,36 +218,36 @@ static void hook_hideIGDSPromoDialog(id self, SEL _cmd) {
 		};
 
 		// If we've already seen it once, remove and suppress
-		if (thetaPromoSeen()) {
+		if (zeusPromoSeen()) {
 			// Give layout a moment, then try pressing the internal "Got it" button.
-			BOOL pressed = thetaPressGotItIfPresent(view);
+			BOOL pressed = zeusPressGotItIfPresent(view);
             if (pressed) return;
             // Fallback: remove/dismiss safely if we couldn't press
             view.hidden = YES;
             [view removeFromSuperview];
             UIWindow *w = view.window ?: UIApplication.sharedApplication.keyWindow ?: UIApplication.sharedApplication.windows.firstObject;
             if (!w) return;
-            UIViewController *vc = thetaFindOwningViewController(view);
+            UIViewController *vc = zeusFindOwningViewController(view);
             if (!vc) vc = w.rootViewController.presentedViewController;
-            if (vc && thetaLooksLikePromoController(NSStringFromClass([vc class]))) {
+            if (vc && zeusLooksLikePromoController(NSStringFromClass([vc class]))) {
                 [vc dismissViewControllerAnimated:NO completion:nil];
                 return;
             }
             UIViewController *presented = w.rootViewController.presentedViewController;
-            if (presented && thetaLooksLikePromoController(NSStringFromClass([presented class]))) {
+            if (presented && zeusLooksLikePromoController(NSStringFromClass([presented class]))) {
                 [presented dismissViewControllerAnimated:NO completion:nil];
             }
 			return;
 		}
 
 		// First time: let it show; monitor for dismissal and mark seen when it disappears
-		thetaScheduleSeenMonitor(view);
+		zeusScheduleSeenMonitor(view);
 	} @catch (__unused NSException *e) {
 		// no-op
 	}
 }
 
-void THRegisterDismissIGDSPromoDialogHooks(void) {
+void ZURegisterDismissIGDSPromoDialogHooks(void) {
 #ifdef SIDELOAD
     NullHookMessageEx(objc_getClass("IGDSPromoDialog.IGDSPromoDialogView"), @selector(didMoveToWindow), (void *)hook_hideIGDSPromoDialog, &orig_hideIGDSPromoDialog);
 #endif

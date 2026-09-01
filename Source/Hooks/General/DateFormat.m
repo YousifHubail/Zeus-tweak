@@ -1,11 +1,11 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 
 // Maps segment index to NSDateFormatter format pattern
 // Indices match SettingsViewController Date Format options:
 //   0=Default, 1=Short (MMM d), 2=Medium (MMM d yyyy),
 //   3=12h, 4=24h, 5=ISO, 6=ISO+T
-static NSString *THDateFormatPattern(NSInteger idx, BOOL withTime) {
+static NSString *ZUDateFormatPattern(NSInteger idx, BOOL withTime) {
     switch (idx) {
         case 1:  return @"MMM d";
         case 2:  return @"MMM d, yyyy";
@@ -17,10 +17,10 @@ static NSString *THDateFormatPattern(NSInteger idx, BOOL withTime) {
     }
 }
 
-static NSString *THFormattedDate(NSDate *date) {
+static NSString *ZUFormattedDate(NSDate *date) {
     NSInteger idx = [[NSUserDefaults standardUserDefaults] integerForKey:@"Date Format_SegmentIndex"];
     if (idx <= 0) return nil;
-    NSString *pattern = THDateFormatPattern(idx, YES);
+    NSString *pattern = ZUDateFormatPattern(idx, YES);
     if (!pattern) return nil;
     static NSDateFormatter *df = nil;
     static dispatch_once_t once;
@@ -32,32 +32,32 @@ static NSString *THFormattedDate(NSDate *date) {
 // Hook: formattedDateInMixedFormat (feed post timestamps)
 static NSString *(*orig_mixedFormat)(NSDate *, SEL);
 static NSString *hook_mixedFormat(NSDate *self, SEL _cmd) {
-    NSString *r = THFormattedDate(self);
+    NSString *r = ZUFormattedDate(self);
     return r ?: orig_mixedFormat(self, _cmd);
 }
 
 // Hook: formattedDateRelativeToNow (notes, comments, stories)
 static NSString *(*orig_relativeNow)(NSDate *, SEL);
 static NSString *hook_relativeNow(NSDate *self, SEL _cmd) {
-    NSString *r = THFormattedDate(self);
+    NSString *r = ZUFormattedDate(self);
     return r ?: orig_relativeNow(self, _cmd);
 }
 
 // Hook: shortenedFormattedDateRelativeToNow
 static NSString *(*orig_shortRelNow)(NSDate *, SEL);
 static NSString *hook_shortRelNow(NSDate *self, SEL _cmd) {
-    NSString *r = THFormattedDate(self);
+    NSString *r = ZUFormattedDate(self);
     return r ?: orig_shortRelNow(self, _cmd);
 }
 
 // Hook: shortenedFormattedDateRelativeToNowHideSeconds: (DMs)
 static NSString *(*orig_shortRelHideSeconds)(NSDate *, SEL, NSInteger);
 static NSString *hook_shortRelHideSeconds(NSDate *self, SEL _cmd, NSInteger hideSeconds) {
-    NSString *r = THFormattedDate(self);
+    NSString *r = ZUFormattedDate(self);
     return r ?: orig_shortRelHideSeconds(self, _cmd, hideSeconds);
 }
 
-void THRegisterDateFormatHooks(void) {
+void ZURegisterDateFormatHooks(void) {
     Class cls = [NSDate class];
 
     SEL mixed = sel_registerName("formattedDateInMixedFormat");

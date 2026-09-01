@@ -8,6 +8,6 @@ static BOOL hook_recentSearchStore(id self, SEL _cmd, id item) {
     return storeUserSearch;
 }
 
-void THRegisterHideSearchesRecentStoreHooks(void) {
+void ZURegisterHideSearchesRecentStoreHooks(void) {
     NullHookMessageIfPresent(objc_getClass("IGRecentSearchStore"), @selector(addItem:), (void *)hook_recentSearchStore, &orig_recentSearchStore);
 }

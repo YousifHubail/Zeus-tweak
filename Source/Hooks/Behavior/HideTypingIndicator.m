@@ -5,6 +5,6 @@ static void hook_hideTypingIndicator(id self, SEL _cmd, BOOL updateOutgoingStatu
     }
 }
 
-void THRegisterHideTypingIndicatorHooks(void) {
+void ZURegisterHideTypingIndicatorHooks(void) {
     NullHookMessageEx(objc_getClass("IGDirectTypingStatusService"), @selector(updateOutgoingStatusIsActive:threadKey:threadMetadata:typingStatusType:), (void *)hook_hideTypingIndicator, &orig_hideTypingIndicator);
 }

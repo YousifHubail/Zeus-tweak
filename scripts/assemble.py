@@ -3,12 +3,12 @@
 Assemble the main tweak translation unit for Theos.
 
 Order (single TU so hook implementations can stay file-local `static`):
-  1. Source/Runtime/THGlobalsAndHooking.m
-  2. Source/Runtime/THNativeToast.m
-  3. Source/Runtime/THSideloadFishhook.m
-  4. Source/Runtime/THSubstrate.m
+  1. Source/Runtime/ZUGlobalsAndHooking.m
+  2. Source/Runtime/ZUNativeToast.m
+  3. Source/Runtime/ZUSideloadFishhook.m
+  4. Source/Runtime/ZUSubstrate.m
   5. Source/Hooks/**/*.m  (GIFNameOverlay.m first)
-  6. Source/Runtime/THTweak.m
+  6. Source/Runtime/ZUTweak.m
 
 Output: TweakCOMPILE.xm
 """
@@ -21,14 +21,15 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "TweakCOMPILE.xm"
 
 PRE = [
-    ROOT / "Source/Runtime/THGlobalsAndHooking.m",
-    ROOT / "Source/Runtime/THNativeToast.m",
-    ROOT / "Source/Runtime/THSideloadFishhook.m",
-    ROOT / "Source/Runtime/THSubstrate.m",
+    ROOT / "Source/Runtime/ZUGlobalsAndHooking.m",
+    ROOT / "Source/Runtime/ZUNativeToast.m",
+    ROOT / "Source/Runtime/ZUSideloadFishhook.m",
+    ROOT / "Source/Runtime/ZUSubstrate.m",
 ]
-POST = ROOT / "Source/Runtime/THTweak.m"
+POST = ROOT / "Source/Runtime/ZUTweak.m"
 HOOKS = ROOT / "Source/Hooks"
 PRIORITY = HOOKS / "UI" / "GIFNameOverlay.m"
+PRIORITY2 = HOOKS / "Behavior" / "StoryGhost.m"
 
 
 def main() -> None:
@@ -53,6 +54,7 @@ def main() -> None:
         lines.append("\n")
 
     append_hook(PRIORITY)
+    append_hook(PRIORITY2)
     for dirpath, _, filenames in os.walk(HOOKS):
         for name in sorted(filenames):
             if name.endswith(".m"):

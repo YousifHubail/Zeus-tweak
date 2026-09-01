@@ -21,12 +21,12 @@ static void hook_screenRecord(id self, SEL _cmd, id state) {
     }
 }
 
-void THRegisterScreenshotProtectionProviderHooks(void) {
+void ZURegisterScreenshotProtectionProviderHooks(void) {
     NullHookMessageEx(objc_getClass("IGScreenCaptureProtection.IGScreenCaptureProtectionViewProvider"), @selector(setIsProtected:), (void *)hook_screenshotSuppression2, &orig_screenshotSuppression2);
     NullHookMessageEx(objc_getClass("IGScreenCaptureProtection.IGScreenCaptureProtectionViewProvider"), @selector(initWithIsProtected:), (void *)hook_screenshotSuppression2, &orig_screenshotSuppression2);
 }
 
-void THRegisterScreenshotObserverHook(void) {
+void ZURegisterScreenshotObserverHook(void) {
     NullHookMessageEx(objc_getClass("IGScreenshotObserver"), @selector(_onTakenScreenshot), (void *)hook_screenshotSuppression, &orig_screenshotSuppression);
     NullHookMessageEx(objc_getClass("IGScreenshotObserver"), @selector(_screenCaptureStateDidChange:), (void *)hook_screenRecord, &orig_screenRecord);
 }

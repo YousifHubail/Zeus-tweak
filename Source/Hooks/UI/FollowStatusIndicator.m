@@ -2,12 +2,12 @@
 
 static void saveMedia(id hostView);
 
-@interface ThetaSaveMediaButtonTarget : NSObject
+@interface ZeusSaveMediaButtonTarget : NSObject
 @property (nonatomic, weak) UIView *hostView;
 - (void)onTap:(id)sender;
 @end
 
-@implementation ThetaSaveMediaButtonTarget
+@implementation ZeusSaveMediaButtonTarget
 - (void)onTap:(id)sender {
     UIView *host = self.hostView;
     if (!host && [sender isKindOfClass:[UIView class]]) {
@@ -15,23 +15,23 @@ static void saveMedia(id hostView);
     }
     if (!host) {
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Save failed" subtitle:@"Lost profile context." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Save failed" subtitle:@"Lost profile context." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
         return;
     }
-    [ThetaHelper performHapticFeedbackIfEnabled];
+    [ZeusHelper performHapticFeedbackIfEnabled];
     saveMedia(host);
 }
 @end
 
-static const NSInteger kThetaFollowSaveButtonTag = 424242;
+static const NSInteger kZeusFollowSaveButtonTag = 424242;
 
-static UIViewController *theta_profileViewControllerFromView(UIView *view) {
+static UIViewController *zeus_profileViewControllerFromView(UIView *view) {
     Class profileCls = NSClassFromString(@"IGProfileViewController");
     if (!profileCls || !view) return nil;
 
     // Walk responders / superviews for any VC, then climb parents to the profile VC.
-    UIViewController *nearest = [ThetaHelper nearestViewController:view];
+    UIViewController *nearest = [ZeusHelper nearestViewController:view];
     for (UIViewController *vc = nearest; vc; vc = vc.parentViewController) {
         if ([vc isKindOfClass:profileCls]) return vc;
     }
@@ -40,7 +40,7 @@ static UIViewController *theta_profileViewControllerFromView(UIView *view) {
     }
 
     // Fallback: top presented stack
-    UIViewController *top = [ThetaHelper topViewController];
+    UIViewController *top = [ZeusHelper topViewController];
     for (UIViewController *vc = top; vc; vc = vc.parentViewController) {
         if ([vc isKindOfClass:profileCls]) return vc;
     }
@@ -50,51 +50,51 @@ static UIViewController *theta_profileViewControllerFromView(UIView *view) {
     return nil;
 }
 
-static NSArray *theta_copyArrayLocked(id owner, NSString *arrayKey, NSString *lockKey) {
+static NSArray *zeus_copyArrayLocked(id owner, NSString *arrayKey, NSString *lockKey) {
     if (!owner) return nil;
-    NSLock *lock = ThetaValueForKey(owner, lockKey);
+    NSLock *lock = ZeusValueForKey(owner, lockKey);
     if (![lock isKindOfClass:[NSLock class]]) lock = nil;
     @try { [lock lock]; } @catch (__unused NSException *e) { lock = nil; }
-    id items = ThetaValueForKey(owner, arrayKey);
+    id items = ZeusValueForKey(owner, arrayKey);
     NSArray *copy = [items isKindOfClass:[NSArray class]] ? [items copy] : nil;
     @try { [lock unlock]; } @catch (__unused NSException *e) {}
     return copy;
 }
 
-static NSArray *theta_gridItemsFromNetworkSource(id networkSource) {
+static NSArray *zeus_gridItemsFromNetworkSource(id networkSource) {
     if (!networkSource) return nil;
     // IGUserFeedNetworkSource stores loaded profile posts in _gridItems (guarded by _gridItemsLock).
-    NSArray *items = theta_copyArrayLocked(networkSource, @"_gridItems", @"_gridItemsLock");
+    NSArray *items = zeus_copyArrayLocked(networkSource, @"_gridItems", @"_gridItemsLock");
     if (items.count) return items;
-    items = ThetaValueForKey(networkSource, @"gridItems");
+    items = ZeusValueForKey(networkSource, @"gridItems");
     return [items isKindOfClass:[NSArray class]] && items.count ? [items copy] : nil;
 }
 
-static NSArray *theta_postsFromNetworkSource(id networkSource) {
+static NSArray *zeus_postsFromNetworkSource(id networkSource) {
     if (!networkSource) return nil;
     // Superclass IGFeedNetworkSource keeps fuller IGMedia objects in _posts.
-    NSArray *posts = theta_copyArrayLocked(networkSource, @"_posts", @"_lock");
+    NSArray *posts = zeus_copyArrayLocked(networkSource, @"_posts", @"_lock");
     if (posts.count) return posts;
-    posts = ThetaValueForKey(networkSource, @"posts");
+    posts = ZeusValueForKey(networkSource, @"posts");
     return [posts isKindOfClass:[NSArray class]] && posts.count ? [posts copy] : nil;
 }
 
 /// IGProfileFeedSource wraps an IGUserFeedNetworkSource in `_feedSource`.
-static id theta_networkSourceFromProfileFeedSource(id profileFeedSource) {
+static id zeus_networkSourceFromProfileFeedSource(id profileFeedSource) {
     if (!profileFeedSource) return nil;
-    id nested = ThetaValueForKey(profileFeedSource, @"_feedSource");
-    if (!nested) nested = ThetaValueForKey(profileFeedSource, @"feedSource");
+    id nested = ZeusValueForKey(profileFeedSource, @"_feedSource");
+    if (!nested) nested = ZeusValueForKey(profileFeedSource, @"feedSource");
     if (nested) return nested;
     // Already unwrapped
-    if (theta_gridItemsFromNetworkSource(profileFeedSource)) return profileFeedSource;
+    if (zeus_gridItemsFromNetworkSource(profileFeedSource)) return profileFeedSource;
     return nil;
 }
 
-static NSArray *theta_gridItemsFromProfileFeedSource(id profileFeedSource) {
-    return theta_gridItemsFromNetworkSource(theta_networkSourceFromProfileFeedSource(profileFeedSource));
+static NSArray *zeus_gridItemsFromProfileFeedSource(id profileFeedSource) {
+    return zeus_gridItemsFromNetworkSource(zeus_networkSourceFromProfileFeedSource(profileFeedSource));
 }
 
-static UIViewController *theta_profileFeedPageFromProfileVC(UIViewController *profileVC) {
+static UIViewController *zeus_profileFeedPageFromProfileVC(UIViewController *profileVC) {
     if (!profileVC) return nil;
 
     NSArray *feedPageNames = @[
@@ -113,7 +113,7 @@ static UIViewController *theta_profileFeedPageFromProfileVC(UIViewController *pr
     if ([profileVC respondsToSelector:@selector(currentPageViewController)]) {
         @try { page = [profileVC performSelector:@selector(currentPageViewController)]; } @catch (__unused NSException *e) {}
     }
-    if (!page) page = ThetaValueForKey(profileVC, @"currentPageViewController");
+    if (!page) page = ZeusValueForKey(profileVC, @"currentPageViewController");
     for (Class cls in feedClasses) {
         if ([page isKindOfClass:cls]) return page;
     }
@@ -134,27 +134,27 @@ static UIViewController *theta_profileFeedPageFromProfileVC(UIViewController *pr
     return nil;
 }
 
-static id theta_profileFeedSourcesManager(UIViewController *profileVC) {
+static id zeus_profileFeedSourcesManager(UIViewController *profileVC) {
     if (!profileVC) return nil;
     for (NSString *key in @[ @"_feedSourcesManager", @"feedSourcesManager", @"profileFeedSourcesManager" ]) {
-        id mgr = ThetaValueForKey(profileVC, key);
+        id mgr = ZeusValueForKey(profileVC, key);
         if (mgr) return mgr;
     }
-    UIViewController *feedPage = theta_profileFeedPageFromProfileVC(profileVC);
+    UIViewController *feedPage = zeus_profileFeedPageFromProfileVC(profileVC);
     for (NSString *key in @[ @"feedSourcesManager", @"_feedSourcesManager" ]) {
-        id mgr = ThetaValueForKey(feedPage, key);
+        id mgr = ZeusValueForKey(feedPage, key);
         if (mgr) return mgr;
     }
     return nil;
 }
 
-static id theta_profileFeedSourceFromManager(id feedSourceMan) {
+static id zeus_profileFeedSourceFromManager(id feedSourceMan) {
     if (!feedSourceMan) return nil;
 
     Class feedSrcCls = NSClassFromString(@"IGProfileFeedSource");
-    id sources = ThetaValueForKey(feedSourceMan, @"_sources");
+    id sources = ZeusValueForKey(feedSourceMan, @"_sources");
     if (![sources isKindOfClass:[NSDictionary class]]) {
-        sources = ThetaValueForKey(feedSourceMan, @"sources");
+        sources = ZeusValueForKey(feedSourceMan, @"sources");
     }
     if (![sources isKindOfClass:[NSDictionary class]]) return nil;
 
@@ -163,10 +163,10 @@ static id theta_profileFeedSourceFromManager(id feedSourceMan) {
     for (id raw in [(NSDictionary *)sources allValues]) {
         id candidate = raw;
         if (feedSrcCls && ![candidate isKindOfClass:feedSrcCls]) {
-            id nestedProfile = ThetaValueForKey(candidate, @"profileFeedSource");
+            id nestedProfile = ZeusValueForKey(candidate, @"profileFeedSource");
             if (nestedProfile) candidate = nestedProfile;
         }
-        if (theta_gridItemsFromProfileFeedSource(candidate).count > 0) {
+        if (zeus_gridItemsFromProfileFeedSource(candidate).count > 0) {
             return candidate;
         }
         if (!fallback && feedSrcCls && [candidate isKindOfClass:feedSrcCls]) {
@@ -176,29 +176,29 @@ static id theta_profileFeedSourceFromManager(id feedSourceMan) {
     return fallback;
 }
 
-static id theta_activeProfileFeedSource(UIViewController *profileVC) {
-    UIViewController *feedPage = theta_profileFeedPageFromProfileVC(profileVC);
+static id zeus_activeProfileFeedSource(UIViewController *profileVC) {
+    UIViewController *feedPage = zeus_profileFeedPageFromProfileVC(profileVC);
     if (feedPage) {
         id pfs = nil;
         if ([feedPage respondsToSelector:@selector(profileFeedSource)]) {
             @try { pfs = [feedPage performSelector:@selector(profileFeedSource)]; } @catch (__unused NSException *e) {}
         }
-        if (!pfs) pfs = ThetaValueForKey(feedPage, @"profileFeedSource");
+        if (!pfs) pfs = ZeusValueForKey(feedPage, @"profileFeedSource");
         if (pfs) return pfs;
     }
-    id feedSourceMan = theta_profileFeedSourcesManager(profileVC);
-    return theta_profileFeedSourceFromManager(feedSourceMan);
+    id feedSourceMan = zeus_profileFeedSourcesManager(profileVC);
+    return zeus_profileFeedSourceFromManager(feedSourceMan);
 }
 
-static NSArray *theta_collectProfileGridItems(UIViewController *profileVC) {
-    id pfs = theta_activeProfileFeedSource(profileVC);
-    NSArray *items = theta_gridItemsFromProfileFeedSource(pfs);
+static NSArray *zeus_collectProfileGridItems(UIViewController *profileVC) {
+    id pfs = zeus_activeProfileFeedSource(profileVC);
+    NSArray *items = zeus_gridItemsFromProfileFeedSource(pfs);
     if (items.count) return items;
     // Fallback: full feed posts if grid models aren't populated yet.
-    return theta_postsFromNetworkSource(theta_networkSourceFromProfileFeedSource(pfs));
+    return zeus_postsFromNetworkSource(zeus_networkSourceFromProfileFeedSource(pfs));
 }
 
-static id theta_mediaFromGridItem(id item) {
+static id zeus_mediaFromGridItem(id item) {
     if (!item) return nil;
 
     // IG 441 profile grid cells are IGMediaThumbnailModel — real IGMedia is on media_DO_NOT_USE.
@@ -214,7 +214,7 @@ static id theta_mediaFromGridItem(id item) {
     }
 
     for (NSString *key in @[ @"media_DO_NOT_USE", @"media", @"_media", @"feedItem", @"post" ]) {
-        id media = ThetaValueForKey(item, key);
+        id media = ZeusValueForKey(item, key);
         if (media && media != item) return media;
     }
 
@@ -230,10 +230,10 @@ static id theta_mediaFromGridItem(id item) {
     return item;
 }
 
-static NSString *theta_mediaIdentity(id media) {
+static NSString *zeus_mediaIdentity(id media) {
     if (!media) return nil;
     for (NSString *key in @[ @"pk", @"_pk", @"mediaID", @"mediaId", @"id", @"graphQLID" ]) {
-        id v = ThetaValueForKey(media, key);
+        id v = ZeusValueForKey(media, key);
         if ([v isKindOfClass:[NSString class]] && [(NSString *)v length]) return v;
         if ([v respondsToSelector:@selector(stringValue)]) {
             NSString *s = [v stringValue];
@@ -243,7 +243,7 @@ static NSString *theta_mediaIdentity(id media) {
     return [NSString stringWithFormat:@"%p", media];
 }
 
-static NSURL *theta_urlFromCandidate(id cand) {
+static NSURL *zeus_urlFromCandidate(id cand) {
     if (!cand) return nil;
     if ([cand isKindOfClass:[NSURL class]]) return ((NSURL *)cand).scheme.length ? cand : nil;
     if ([cand isKindOfClass:[NSString class]]) {
@@ -251,7 +251,7 @@ static NSURL *theta_urlFromCandidate(id cand) {
         return u.scheme.length ? u : nil;
     }
     for (NSString *key in @[ @"url", @"URL", @"imageURL", @"imageUrl", @"uri", @"src" ]) {
-        id url = ThetaValueForKey(cand, key);
+        id url = ZeusValueForKey(cand, key);
         if ([url isKindOfClass:[NSURL class]] && [(NSURL *)url scheme].length) return url;
         if ([url isKindOfClass:[NSString class]]) {
             NSURL *u = [NSURL URLWithString:(NSString *)url];
@@ -261,11 +261,11 @@ static NSURL *theta_urlFromCandidate(id cand) {
     return nil;
 }
 
-static NSArray *theta_imageVersionArraysFromPhoto(id photo) {
+static NSArray *zeus_imageVersionArraysFromPhoto(id photo) {
     if (!photo) return nil;
     NSMutableArray *out = [NSMutableArray array];
     for (NSString *key in @[ @"_originalImageVersions", @"imageVersions", @"_imageVersions", @"imageVersions2", @"_imageVersions2" ]) {
-        id versions = ThetaValueForKey(photo, key);
+        id versions = ZeusValueForKey(photo, key);
         if ([versions isKindOfClass:[NSDictionary class]]) {
             id cands = [(NSDictionary *)versions objectForKey:@"candidates"];
             if (!cands) cands = [(NSDictionary *)versions objectForKey:@"_candidates"];
@@ -278,21 +278,21 @@ static NSArray *theta_imageVersionArraysFromPhoto(id photo) {
     return out.count ? out : nil;
 }
 
-static NSURL *theta_bestImageURLFromPhoto(id photo) {
+static NSURL *zeus_bestImageURLFromPhoto(id photo) {
     if (!photo) return nil;
-    for (NSArray *versions in theta_imageVersionArraysFromPhoto(photo)) {
+    for (NSArray *versions in zeus_imageVersionArraysFromPhoto(photo)) {
         // Prefer last candidate (usually highest res in IG arrays).
-        NSURL *u = theta_urlFromCandidate([versions lastObject]);
+        NSURL *u = zeus_urlFromCandidate([versions lastObject]);
         if (u) return u;
         for (id cand in [versions reverseObjectEnumerator]) {
-            u = theta_urlFromCandidate(cand);
+            u = zeus_urlFromCandidate(cand);
             if (u) return u;
         }
     }
-    return theta_urlFromCandidate(photo);
+    return zeus_urlFromCandidate(photo);
 }
 
-static NSURL *theta_bestImageURLFromObject(id obj) {
+static NSURL *zeus_bestImageURLFromObject(id obj) {
     if (!obj) return nil;
 
     // Collect hintable URLs from the object itself.
@@ -301,12 +301,12 @@ static NSURL *theta_bestImageURLFromObject(id obj) {
         @try { urls = [obj performSelector:@selector(hintableImageURLs)]; } @catch (__unused NSException *e) {}
         if ([urls isKindOfClass:[NSArray class]]) {
             for (id cand in [(NSArray *)urls reverseObjectEnumerator]) {
-                NSURL *u = theta_urlFromCandidate(cand);
+                NSURL *u = zeus_urlFromCandidate(cand);
                 if (u) return u;
             }
         } else if ([urls isKindOfClass:[NSSet class]]) {
             for (id cand in (NSSet *)urls) {
-                NSURL *u = theta_urlFromCandidate(cand);
+                NSURL *u = zeus_urlFromCandidate(cand);
                 if (u) return u;
             }
         }
@@ -317,49 +317,49 @@ static NSURL *theta_bestImageURLFromObject(id obj) {
         if ([obj respondsToSelector:NSSelectorFromString(key)]) {
             @try { photo = [obj performSelector:NSSelectorFromString(key)]; } @catch (__unused NSException *e) {}
         }
-        if (!photo) photo = ThetaValueForKey(obj, key);
-        NSURL *u = theta_bestImageURLFromPhoto(photo);
+        if (!photo) photo = ZeusValueForKey(obj, key);
+        NSURL *u = zeus_bestImageURLFromPhoto(photo);
         if (u) return u;
     }
-    return theta_bestImageURLFromPhoto(obj);
+    return zeus_bestImageURLFromPhoto(obj);
 }
 
-static id theta_videoFromObject(id obj) {
+static id zeus_videoFromObject(id obj) {
     if (!obj) return nil;
     id video = nil;
     if ([obj respondsToSelector:@selector(video)]) {
         @try { video = [obj performSelector:@selector(video)]; } @catch (__unused NSException *e) {}
     }
-    if (!video) video = ThetaValueForKey(obj, @"video");
-    if (!video) video = ThetaValueForKey(obj, @"rawVideo");
+    if (!video) video = ZeusValueForKey(obj, @"video");
+    if (!video) video = ZeusValueForKey(obj, @"rawVideo");
     return video;
 }
 
-static NSURL *theta_bestVideoURLFromVideo(id video) {
+static NSURL *zeus_bestVideoURLFromVideo(id video) {
     if (!video) return nil;
     if ([video respondsToSelector:@selector(allVideoURLs)]) {
         id set = nil;
         @try { set = [video performSelector:@selector(allVideoURLs)]; } @catch (__unused NSException *e) {}
         if ([set isKindOfClass:[NSSet class]]) {
             for (id cand in (NSSet *)set) {
-                NSURL *u = theta_urlFromCandidate(cand);
+                NSURL *u = zeus_urlFromCandidate(cand);
                 if (u) return u;
             }
         } else if ([set isKindOfClass:[NSArray class]]) {
             for (id cand in [(NSArray *)set reverseObjectEnumerator]) {
-                NSURL *u = theta_urlFromCandidate(cand);
+                NSURL *u = zeus_urlFromCandidate(cand);
                 if (u) return u;
             }
         }
     }
     for (NSString *key in @[ @"videoUrl", @"videoURL", @"url", @"_url" ]) {
-        NSURL *u = theta_urlFromCandidate(ThetaValueForKey(video, key));
+        NSURL *u = zeus_urlFromCandidate(ZeusValueForKey(video, key));
         if (u) return u;
     }
     return nil;
 }
 
-static NSInteger theta_mediaTypeOfObject(id obj) {
+static NSInteger zeus_mediaTypeOfObject(id obj) {
     if (!obj) return -1;
     // Prefer explicit item/media enums. Avoid bare `mediaType` first — on some objects it is not an NSInteger.
     NSArray<NSString *> *sels = @[ @"itemMediaType", @"mediaTypeEnum", @"computedMediaType", @"mediaType" ];
@@ -375,10 +375,10 @@ static NSInteger theta_mediaTypeOfObject(id obj) {
     return -1;
 }
 
-static NSArray *theta_carouselOrSelfItems(id media) {
+static NSArray *zeus_carouselOrSelfItems(id media) {
     if (!media) return nil;
     for (NSString *key in @[ @"items", @"_items", @"carouselMedia", @"_carouselMedia", @"carousel_media" ]) {
-        id items = ThetaValueForKey(media, key);
+        id items = ZeusValueForKey(media, key);
         if ([items isKindOfClass:[NSArray class]] && [(NSArray *)items count] > 0) {
             return items;
         }
@@ -386,7 +386,7 @@ static NSArray *theta_carouselOrSelfItems(id media) {
     return @[ media ];
 }
 
-static void theta_addPhotoURL(NSURL *imageURL, NSMutableArray *urlItems) {
+static void zeus_addPhotoURL(NSURL *imageURL, NSMutableArray *urlItems) {
     if (!imageURL.absoluteString.length || !urlItems) return;
     [urlItems addObject:@{
         @"url": imageURL.absoluteString,
@@ -395,9 +395,9 @@ static void theta_addPhotoURL(NSURL *imageURL, NSMutableArray *urlItems) {
     }];
 }
 
-static BOOL theta_videoHasDownloadablePayload(id video) {
+static BOOL zeus_videoHasDownloadablePayload(id video) {
     if (!video) return NO;
-    if (theta_bestVideoURLFromVideo(video)) return YES;
+    if (zeus_bestVideoURLFromVideo(video)) return YES;
     if (![video respondsToSelector:@selector(allVideoURLs)]) return NO;
     id set = nil;
     @try { set = [video performSelector:@selector(allVideoURLs)]; } @catch (__unused NSException *e) {}
@@ -406,13 +406,13 @@ static BOOL theta_videoHasDownloadablePayload(id video) {
     return NO;
 }
 
-static BOOL theta_addVideoFromObject(id postItem, NSMutableArray *urlItems, NSMutableArray *hdVideos) {
-    id video = theta_videoFromObject(postItem);
-    if (!theta_videoHasDownloadablePayload(video) && !theta_videoHasDownloadablePayload(postItem)) {
+static BOOL zeus_addVideoFromObject(id postItem, NSMutableArray *urlItems, NSMutableArray *hdVideos) {
+    id video = zeus_videoFromObject(postItem);
+    if (!zeus_videoHasDownloadablePayload(video) && !zeus_videoHasDownloadablePayload(postItem)) {
         return NO;
     }
-    NSURL *vurl = theta_bestVideoURLFromVideo(video);
-    if (!vurl) vurl = theta_bestVideoURLFromVideo(postItem);
+    NSURL *vurl = zeus_bestVideoURLFromVideo(video);
+    if (!vurl) vurl = zeus_bestVideoURLFromVideo(postItem);
 
     if (video && hdVideos) {
         [hdVideos addObject:video];
@@ -431,67 +431,67 @@ static BOOL theta_addVideoFromObject(id postItem, NSMutableArray *urlItems, NSMu
 
 /// Append URL dicts and/or IGVideo objects from one IGMedia (including carousel children).
 /// `thumbnailFallback` is the grid cell model (has display photo even when media is sparse).
-static void theta_appendMediaFromMedia(id media, id thumbnailFallback, NSMutableArray *urlItems, NSMutableArray *hdVideos) {
+static void zeus_appendMediaFromMedia(id media, id thumbnailFallback, NSMutableArray *urlItems, NSMutableArray *hdVideos) {
     if ((!media && !thumbnailFallback) || (!urlItems && !hdVideos)) return;
 
     id root = media ?: thumbnailFallback;
-    NSArray *items = theta_carouselOrSelfItems(root);
+    NSArray *items = zeus_carouselOrSelfItems(root);
     NSInteger addedBefore = (NSInteger)urlItems.count + (NSInteger)hdVideos.count;
 
     for (id postItem in items) {
-        NSInteger mediaType = theta_mediaTypeOfObject(postItem);
+        NSInteger mediaType = zeus_mediaTypeOfObject(postItem);
         // IG: 1=photo, 2=video, 8=carousel (parent). Never treat 8 as video.
         BOOL explicitPhoto = (mediaType == 1);
         BOOL explicitVideo = (mediaType == 2);
 
         if (explicitVideo) {
-            if (!theta_addVideoFromObject(postItem, urlItems, hdVideos)) {
+            if (!zeus_addVideoFromObject(postItem, urlItems, hdVideos)) {
                 // Cover frame fallback
-                NSURL *imageURL = theta_bestImageURLFromObject(postItem) ?: theta_bestImageURLFromObject(thumbnailFallback);
-                theta_addPhotoURL(imageURL, urlItems);
+                NSURL *imageURL = zeus_bestImageURLFromObject(postItem) ?: zeus_bestImageURLFromObject(thumbnailFallback);
+                zeus_addPhotoURL(imageURL, urlItems);
             }
             continue;
         }
 
         if (explicitPhoto) {
-            NSURL *imageURL = theta_bestImageURLFromObject(postItem);
-            if (!imageURL) imageURL = theta_bestImageURLFromObject(root);
-            if (!imageURL) imageURL = theta_bestImageURLFromObject(thumbnailFallback);
-            theta_addPhotoURL(imageURL, urlItems);
+            NSURL *imageURL = zeus_bestImageURLFromObject(postItem);
+            if (!imageURL) imageURL = zeus_bestImageURLFromObject(root);
+            if (!imageURL) imageURL = zeus_bestImageURLFromObject(thumbnailFallback);
+            zeus_addPhotoURL(imageURL, urlItems);
             continue;
         }
 
         // Unknown / carousel child without type: real video payload wins, else photo/thumbnail.
-        if (theta_addVideoFromObject(postItem, urlItems, hdVideos)) continue;
-        NSURL *imageURL = theta_bestImageURLFromObject(postItem);
-        if (!imageURL && postItem != root) imageURL = theta_bestImageURLFromObject(root);
-        if (!imageURL) imageURL = theta_bestImageURLFromObject(thumbnailFallback);
-        theta_addPhotoURL(imageURL, urlItems);
+        if (zeus_addVideoFromObject(postItem, urlItems, hdVideos)) continue;
+        NSURL *imageURL = zeus_bestImageURLFromObject(postItem);
+        if (!imageURL && postItem != root) imageURL = zeus_bestImageURLFromObject(root);
+        if (!imageURL) imageURL = zeus_bestImageURLFromObject(thumbnailFallback);
+        zeus_addPhotoURL(imageURL, urlItems);
     }
 
     // Guarantee at least the grid thumbnail photo for this cell if nothing else extracted.
     NSInteger addedAfter = (NSInteger)urlItems.count + (NSInteger)hdVideos.count;
     if (addedAfter == addedBefore) {
-        NSURL *imageURL = theta_bestImageURLFromObject(thumbnailFallback);
-        if (!imageURL) imageURL = theta_bestImageURLFromObject(root);
-        theta_addPhotoURL(imageURL, urlItems);
+        NSURL *imageURL = zeus_bestImageURLFromObject(thumbnailFallback);
+        if (!imageURL) imageURL = zeus_bestImageURLFromObject(root);
+        zeus_addPhotoURL(imageURL, urlItems);
     }
 }
 
 static void saveMedia(id hostView) {
     @try {
-        UIViewController *profileVC = theta_profileViewControllerFromView([hostView isKindOfClass:[UIView class]] ? hostView : nil);
+        UIViewController *profileVC = zeus_profileViewControllerFromView([hostView isKindOfClass:[UIView class]] ? hostView : nil);
         if (!profileVC) {
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Save failed" subtitle:@"Open a user profile and try again." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Save failed" subtitle:@"Open a user profile and try again." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
 
-        id profileFeedSource = theta_activeProfileFeedSource(profileVC);
-        id networkSource = theta_networkSourceFromProfileFeedSource(profileFeedSource);
-        NSArray *gridItems = theta_gridItemsFromNetworkSource(networkSource);
-        NSArray *posts = theta_postsFromNetworkSource(networkSource);
+        id profileFeedSource = zeus_activeProfileFeedSource(profileVC);
+        id networkSource = zeus_networkSourceFromProfileFeedSource(profileFeedSource);
+        NSArray *gridItems = zeus_gridItemsFromNetworkSource(networkSource);
+        NSArray *posts = zeus_postsFromNetworkSource(networkSource);
         if (gridItems.count == 0 && posts.count == 0) {
             // Only treat as private when the user model says so AND we're not following.
             BOOL isPrivateBlocked = NO;
@@ -506,16 +506,16 @@ static void saveMedia(id hostView) {
                 } else if ([user respondsToSelector:@selector(isPrivateProfile)]) {
                     isPrivate = ((BOOL (*)(id, SEL))objc_msgSend)(user, @selector(isPrivateProfile));
                 } else {
-                    id priv = ThetaValueForKey(user, @"isPrivate");
-                    if (!priv) priv = ThetaValueForKey(user, @"is_private");
+                    id priv = ZeusValueForKey(user, @"isPrivate");
+                    if (!priv) priv = ZeusValueForKey(user, @"is_private");
                     if ([priv respondsToSelector:@selector(boolValue)]) isPrivate = [priv boolValue];
                 }
 
                 BOOL following = NO;
-                id friendship = ThetaValueForKey(user, @"friendshipStatus");
-                if (!friendship) friendship = ThetaValueForKey(user, @"_friendshipStatus");
-                id followingVal = ThetaValueForKey(friendship, @"following");
-                if (!followingVal) followingVal = ThetaValueForKey(friendship, @"is_following");
+                id friendship = ZeusValueForKey(user, @"friendshipStatus");
+                if (!friendship) friendship = ZeusValueForKey(user, @"_friendshipStatus");
+                id followingVal = ZeusValueForKey(friendship, @"following");
+                if (!followingVal) followingVal = ZeusValueForKey(friendship, @"is_following");
                 if ([followingVal respondsToSelector:@selector(boolValue)]) {
                     following = [followingVal boolValue];
                 } else if ([user respondsToSelector:@selector(following)]) {
@@ -526,9 +526,9 @@ static void saveMedia(id hostView) {
             } @catch (__unused NSException *e) {}
 
             if (isPrivateBlocked) {
-                [ThetaHelper showToastWithTitle:@"Can't save posts!" subtitle:@"This account is private." icon:[UIImage systemImageNamed:@"lock.fill"] autoHide:4 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Can't save posts!" subtitle:@"This account is private." icon:[UIImage systemImageNamed:@"lock.fill"] autoHide:4 openURL:nil];
             } else {
-                [ThetaHelper showCustomAlertWithActions:@"✋ Woah! Hold up!"
+                [ZeusHelper showCustomAlertWithActions:@"✋ Woah! Hold up!"
                                              description:@"As of now, we can't find any posts.\n\nMake sure you are on the user's posts tab, scroll to load posts, then try again."
                                                  actions:@[ @{ @"title": @"Okay, thanks.", @"handler": ^(id sender) {} } ]];
             }
@@ -538,7 +538,7 @@ static void saveMedia(id hostView) {
         NSUInteger loadedPostCount = MAX(gridItems.count, posts.count);
         NSString *toastTitle = loadedPostCount > 1 ? @"Fetching media..." : @"Saving media...";
         NSString *toastDescription = loadedPostCount > 1 ? @"This may take a couple minutes." : @"This may take a few seconds.";
-        [ThetaHelper showToastWithTitle:toastTitle subtitle:toastDescription icon:[UIImage systemImageNamed:@"arrow.clockwise"] autoHide:4 openURL:nil];
+        [ZeusHelper showToastWithTitle:toastTitle subtitle:toastDescription icon:[UIImage systemImageNamed:@"arrow.clockwise"] autoHide:4 openURL:nil];
 
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
             NSMutableArray *urlItems = [NSMutableArray array];
@@ -552,7 +552,7 @@ static void saveMedia(id hostView) {
             if (posts.count) [candidates addObjectsFromArray:posts];
 
             for (id item in candidates) {
-                id media = theta_mediaFromGridItem(item);
+                id media = zeus_mediaFromGridItem(item);
                 id thumbnail = item;
                 // If `item` is already IGMedia (from _posts), don't use it as thumbnail fallback.
                 Class thumbCls = NSClassFromString(@"_TtC21IGMediaThumbnailModel21IGMediaThumbnailModel");
@@ -562,13 +562,13 @@ static void saveMedia(id hostView) {
                 }
                 if (!media && !thumbnail) continue;
                 id identityObj = media ?: thumbnail;
-                NSString *ident = theta_mediaIdentity(identityObj);
+                NSString *ident = zeus_mediaIdentity(identityObj);
                 if (ident && [seenMedia containsObject:ident]) continue;
                 if (ident) [seenMedia addObject:ident];
                 @try {
-                    theta_appendMediaFromMedia(media, thumbnail, urlItems, hdVideos);
+                    zeus_appendMediaFromMedia(media, thumbnail, urlItems, hdVideos);
                 } @catch (NSException *exception) {
-                    NSLog(@"[Theta] Save Profile Posts item error: %@", exception);
+                    NSLog(@"[Zeus] Save Profile Posts item error: %@", exception);
                 }
             }
 
@@ -612,7 +612,7 @@ static void saveMedia(id hostView) {
             NSInteger total = (NSInteger)readyItems.count + (NSInteger)hdVideos.count;
             void (^presentPicker)(void) = ^{
                 if (total == 0) {
-                    [ThetaHelper showToastWithTitle:@"Save failed" subtitle:@"Found posts, but no downloadable media URLs." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Save failed" subtitle:@"Found posts, but no downloadable media URLs." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
                     return;
                 }
 
@@ -625,7 +625,7 @@ static void saveMedia(id hostView) {
                                                          extensions:[NSMutableArray arrayWithObject:fileExtension]];
                         }];
                     } @catch (NSException *exception) {
-                        NSLog(@"[Theta] Save Profile Posts single: %@", exception);
+                        NSLog(@"[Zeus] Save Profile Posts single: %@", exception);
                     }
                     return;
                 }
@@ -636,10 +636,10 @@ static void saveMedia(id hostView) {
                                                                         hdVideos:hdVideos
                                                                        withCount:total];
                     UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
-                    [[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+                    [[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
                 } @catch (NSException *exception) {
-                    NSLog(@"[Theta] Save Profile Posts multi: %@", exception);
-                    [ThetaHelper showToastWithTitle:@"Save failed" subtitle:exception.reason ?: @"Couldn't open media picker." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
+                    NSLog(@"[Zeus] Save Profile Posts multi: %@", exception);
+                    [ZeusHelper showToastWithTitle:@"Save failed" subtitle:exception.reason ?: @"Couldn't open media picker." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
                 }
             };
 
@@ -656,9 +656,9 @@ static void saveMedia(id hostView) {
             });
         });
     } @catch (NSException *exception) {
-        NSLog(@"[Theta] Save Profile Posts: %@", exception);
+        NSLog(@"[Zeus] Save Profile Posts: %@", exception);
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Save failed" subtitle:exception.reason ?: @"Unexpected error." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Save failed" subtitle:exception.reason ?: @"Unexpected error." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
     }
 }
@@ -667,7 +667,7 @@ static void (*orig_followStatusIndicator)(UIView *self, SEL _cmd);
 static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
     if (orig_followStatusIndicator) orig_followStatusIndicator(self, _cmd);
 
-    UIViewController *profileVC = theta_profileViewControllerFromView(self);
+    UIViewController *profileVC = zeus_profileViewControllerFromView(self);
     if (!profileVC) {
         return;
     }
@@ -684,9 +684,9 @@ static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
         return;
     }
 
-    id context = ThetaValueForKey(profileVC, @"_navBarContext");
-    if (!context) context = ThetaValueForKey(profileVC, @"navBarContext");
-    BOOL currentUser = context ? [ThetaValueForKey(context, @"isCurrentUser") boolValue] : NO;
+    id context = ZeusValueForKey(profileVC, @"_navBarContext");
+    if (!context) context = ZeusValueForKey(profileVC, @"navBarContext");
+    BOOL currentUser = context ? [ZeusValueForKey(context, @"isCurrentUser") boolValue] : NO;
     if (currentUser) {
         return;
     }
@@ -706,7 +706,7 @@ static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
             continue;
         }
 
-        id styledString = ThetaValueForKey(view, @"styledString");
+        id styledString = ZeusValueForKey(view, @"styledString");
         if (!styledString || ![styledString respondsToSelector:@selector(attributedString)]) {
             continue;
         }
@@ -754,11 +754,11 @@ static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
         }
 
         @try {
-            ThetaSetValueForKey(view, styledString, @"styledString");
+            ZeusSetValueForKey(view, styledString, @"styledString");
 
             UIButton *saveButton = nil;
             for (UIView *sub in [self subviews]) {
-                if ([sub isKindOfClass:[UIButton class]] && sub.tag == kThetaFollowSaveButtonTag) {
+                if ([sub isKindOfClass:[UIButton class]] && sub.tag == kZeusFollowSaveButtonTag) {
                     saveButton = (UIButton *)sub;
                     break;
                 }
@@ -768,13 +768,13 @@ static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
                 self.clipsToBounds = NO;
                 if (!saveButton) {
                     saveButton = [UIButton buttonWithType:UIButtonTypeSystem];
-                    saveButton.tag = kThetaFollowSaveButtonTag;
+                    saveButton.tag = kZeusFollowSaveButtonTag;
                     [saveButton setImage:[UIImage systemImageNamed:@"arrow.down"] forState:UIControlStateNormal];
-                    [saveButton setTintColor:[ThetaHelper iotaPinkColor]];
+                    [saveButton setTintColor:[ZeusHelper iotaPinkColor]];
                     saveButton.userInteractionEnabled = YES;
                     saveButton.exclusiveTouch = YES;
-                    saveButton.accessibilityIdentifier = @"theta_save_profile_button";
-                    ThetaSaveMediaButtonTarget *target = [ThetaSaveMediaButtonTarget new];
+                    saveButton.accessibilityIdentifier = @"zeus_save_profile_button";
+                    ZeusSaveMediaButtonTarget *target = [ZeusSaveMediaButtonTarget new];
                     target.hostView = self;
                     objc_setAssociatedObject(saveButton, @selector(onTap:), target, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
@@ -782,12 +782,12 @@ static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
                         [target onTap:saveButton];
                     }] forControlEvents:UIControlEventTouchUpInside];
 
-                    ThetaSetCaptureHiding(saveButton);
+                    ZeusSetCaptureHiding(saveButton);
                     [self addSubview:saveButton];
                 } else {
                     // Keep hostView fresh across layout passes
-                    ThetaSaveMediaButtonTarget *target = objc_getAssociatedObject(saveButton, @selector(onTap:));
-                    if ([target isKindOfClass:[ThetaSaveMediaButtonTarget class]]) {
+                    ZeusSaveMediaButtonTarget *target = objc_getAssociatedObject(saveButton, @selector(onTap:));
+                    if ([target isKindOfClass:[ZeusSaveMediaButtonTarget class]]) {
                         target.hostView = self;
                     }
                 }
@@ -817,13 +817,13 @@ static void hook_followStatusIndicator(UIView *self, SEL _cmd) {
             [view setNeedsLayout];
             [view setNeedsDisplay];
         } @catch (NSException *exception) {
-            NSLog(@"[Theta] FollowStatusIndicator: %@", exception);
+            NSLog(@"[Zeus] FollowStatusIndicator: %@", exception);
         }
     }
 }
 
-void THRegisterFollowStatusIndicatorHooks(void) {
-    Class nameView = ThetaFirstClass(@[
+void ZURegisterFollowStatusIndicatorHooks(void) {
+    Class nameView = ZeusFirstClass(@[
         @"_TtC23IGProfileHeaderIdentity31IGProfileHeaderIdentityNameView",
         @"IGProfileHeaderIdentity.IGProfileHeaderIdentityNameView"
     ]);

@@ -1,9 +1,11 @@
 #import "Include/SettingsViewController.h"
+#import "Include/ZeusThemePickerViewController.h"
+#import "Include/ZeusTheme.h"
 #import "Include/SubMenuViewController.h"
 #import "Include/AudioNotesViewController.h"
 #import "Include/CustomSwitchCell.h"
 #import "Include/CustomToastView.h"
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 #import <AudioToolbox/AudioToolbox.h>
 #import "Include/InstagramHeaders.h"
 #import <LocalAuthentication/LocalAuthentication.h>
@@ -13,7 +15,7 @@
 #define ENABLED(setting) [[NSUserDefaults standardUserDefaults] boolForKey:[NSString stringWithFormat:@"%@_Enabled", setting]]
 
 // MARK: - Color serialization helpers
-static NSString *THHexStringFromColor(UIColor *color) {
+static NSString *ZUHexStringFromColor(UIColor *color) {
     if (!color) return nil;
     CGFloat r = 0, g = 0, b = 0, a = 1;
     if (![color getRed:&r green:&g blue:&b alpha:&a]) {
@@ -31,7 +33,7 @@ static NSString *THHexStringFromColor(UIColor *color) {
     return [NSString stringWithFormat:@"%02X%02X%02X", R, G, B];
 }
 
-static UIColor *THColorFromHexString(NSString *hexString) {
+static UIColor *ZUColorFromHexString(NSString *hexString) {
     if (![hexString isKindOfClass:[NSString class]]) return nil;
     NSString *hex = [[hexString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] uppercaseString];
     if ([hex hasPrefix:@"#"]) hex = [hex substringFromIndex:1];
@@ -88,30 +90,36 @@ static UIColor *THColorFromHexString(NSString *hexString) {
 @property (nonatomic, strong) AVCaptureSession *qrSession;
 @property (nonatomic, strong) UIViewController *qrScanVC;
 @property (nonatomic, strong) NSString *instagramVersion;
-@property (nonatomic, strong) NSString *thetaVersion;
+@property (nonatomic, strong) NSString *zeusVersion;
 @end
 
-// Image generation moved to ThetaHelper
+// Image generation moved to ZeusHelper
 
-// Top view controller utility moved to ThetaHelper
+// Top view controller utility moved to ZeusHelper
 
-// Haptic feedback moved to ThetaHelper
+// Haptic feedback moved to ZeusHelper
 
-// Toast functionality moved to ThetaHelper
+// Toast functionality moved to ZeusHelper
 
-// Toast functionality moved to ThetaHelper
+// Toast functionality moved to ZeusHelper
 
 @implementation SettingsViewController
 - (void)viewDidLoad {
     [super viewDidLoad];
+    // Repaint in place when the theme changes, so the picker does not
+    // require backing out and reopening settings to see the result.
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(zeusThemeDidChange)
+                                                 name:ZeusThemeDidChangeNotification
+                                               object:nil];
 
-    self.title = @"THETA";
+    self.title = @"ZEUS";
 
     self.tableView.delegate = self;
 
     SubMenuItem *general = [SubMenuItem new];
     general.title = @"General";
-    general.detail = @"General Theta behavior on Instagram.";
+    general.detail = @"General Zeus behavior on Instagram.";
     general.iconName = @"gearshape";
 
     SubMenuItem *feed = [SubMenuItem new];
@@ -126,7 +134,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
 
     SubMenuItem *media = [SubMenuItem new];
     media.title = @"Media";
-    media.detail = @"Various media options for Theta.";
+    media.detail = @"Various media options for Zeus.";
     media.iconName = @"photo";
     
     SubMenuItem *reels = [SubMenuItem new];
@@ -154,7 +162,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
 
     self.settingsBySubMenu = @{
         @"General": @[
-            @{@"title": @"Profile Analyzer", @"detail": @"Track who follows and unfollows you.", @"type": @"view", @"viewController": @"THProfileAnalyzerViewController", @"info": @"Scans your current followers and following lists and compares them to the last scan. Results show new followers, unfollowers, who you followed/unfollowed, mutual followers, and who doesn't follow you back. Data is stored locally. Scan history (from the analyzer screen) supports clearing all, swipe-to-delete for a single snapshot, or Compare mode to delete several at once. Requests are paced to reduce Instagram throttling; very large lists (13,000+ total) may still be limited by Instagram."},
+            @{@"title": @"Profile Analyzer", @"detail": @"Track who follows and unfollows you.", @"type": @"view", @"viewController": @"ZUProfileAnalyzerViewController", @"info": @"Scans your current followers and following lists and compares them to the last scan. Results show new followers, unfollowers, who you followed/unfollowed, mutual followers, and who doesn't follow you back. Data is stored locally. Scan history (from the analyzer screen) supports clearing all, swipe-to-delete for a single snapshot, or Compare mode to delete several at once. Requests are paced to reduce Instagram throttling; very large lists (13,000+ total) may still be limited by Instagram."},
             @{@"title": @"Screenshot Suppression", @"detail": @"Prevents screenshot and screen recording notifications."},
             @{@"title": @"Like Confirmation", @"detail": @"Display an alert when you like a post."},
             @{@"title": @"Follow Confirmation", @"detail": @"Display an alert when you follow someone."},
@@ -178,14 +186,14 @@ static UIColor *THColorFromHexString(NSString *hexString) {
             @{@"title": @"Hide End-of-Feed Footer", @"detail": @"Clears end-of-feed suggestion text."},
         ],
         @"Messages": @[
-            @{@"title": @"Keep Deleted Messages", @"detail": @"Keep messages even after deletion.", @"info": @"Whenever messages are deleted (either from yourself or the other person), they will be kept locally as long as you don't refresh your chat feed.\n\nDeleted messages will be colored with the color you choose below."},
+            @{@"title": @"Keep Deleted Messages", @"detail": @"Keep messages even after deletion.", @"info": @"Whenever messages are deleted (either from yourself or the other person), they will be kept locally as long as you don't refresh your chat feed.\n\nDeleted messages will be colored with the color you choose below.\n\nFor photos/videos: opening one saves a local backup in the background. If the sender later deletes it and Instagram's own preview fails to load, a green restore button appears next to it so you can still save the backup to your camera roll."},
             @{@"title": @"Deleted Message Color", @"detail": @"Choose the color used for deleted messages.", @"type": @"color"},
             @{@"title": @"Save Audio Messages", @"detail": @"Save audio messages to device.", @"info": @"When enabled, you will be able to download audio messages after they have finished playing."},
             @{@"title": @"Upload Audio Messages", @"detail": @"Upload audio messages.", @"info": @"When enabled, whenever you press the voice message button, you will get a dialog asking if you want to upload audio from a video that's in your camera roll or record a new one."},
             @{@"title": @"Bypass Character Limit", @"detail": @"Bypass the character limit in messages."},
             @{@"title": @"Hide Typing Indicator", @"detail": @"Recipients won't know you're typing."},
             @{@"title": @"Mark As Seen", @"detail": @"Mark messages as seen with a button."},
-            @{@"title": @"Mark As Seen Auto-Mark List", @"detail": @"Users in this list: their DMs are marked seen automatically.", @"type": @"view", @"viewController": @"ThetaUserListEditorViewController", @"listKey": @"Theta_MarkAsSeen_AutoMarkUserIds", @"listTitle": @"Mark as seen auto-mark list"},
+            @{@"title": @"Mark As Seen Auto-Mark List", @"detail": @"Users in this list: their DMs are marked seen automatically.", @"type": @"view", @"viewController": @"ZeusUserListEditorViewController", @"listKey": @"Zeus_MarkAsSeen_AutoMarkUserIds", @"listTitle": @"Mark as seen auto-mark list"},
             @{@"title": @"Seen On Typing", @"detail": @"Mark messages as seen when typing."},
             @{@"title": @"Seen On React", @"detail": @"Mark messages as seen when reacting."},
             @{@"title": @"Seen On Send", @"detail": @"Mark messages as seen when sending."},
@@ -202,7 +210,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
             @{@"title": @"Live Without Viewer List", @"detail": @"Stop IG from polling viewer counts during live broadcasts (you remain anonymous in the attendee list mechanics)."},
             @{@"title": @"Live Comments Sheet Toggle", @"detail": @"While watching a live story, long-press the heart to hide or reveal the floating comment strip for this session only.", @"info": @"This only affects layout on your device until you leave the live. Useful if you want a cleaner stage without losing quick access."},
             @{@"title": @"Story Ghost", @"detail": @"Manually mark stories as seen."},
-            @{@"title": @"Story Ghost Auto-Mark List", @"detail": @"Users in this list: their stories are marked seen when you view.", @"type": @"view", @"viewController": @"ThetaUserListEditorViewController", @"listKey": @"Theta_StoryGhost_AutoMarkUserIds", @"listTitle": @"Story Ghost auto-mark list"},
+            @{@"title": @"Story Ghost Auto-Mark List", @"detail": @"Users in this list: their stories are marked seen when you view.", @"type": @"view", @"viewController": @"ZeusUserListEditorViewController", @"listKey": @"Zeus_StoryGhost_AutoMarkUserIds", @"listTitle": @"Story Ghost auto-mark list"},
             @{@"title": @"Story Seen On Reply", @"detail": @"Mark stories as seen when replying to a story."},
             @{@"title": @"Seen Receipts Stay Local", @"detail": @"Keep story rings cleared on this phone but pause server-side seen receipts.", @"info": @"Shows a phone icon on the story overlay (with Save / Ghost / mentions). Tap marks the current slide seen only on this device; long-press marks every slide in this reel the same way. Works alongside Story Ghost—the eye is for normal mark-as-seen; the phone icon is always local-only."},
             @{@"title": @"Skip On Seen", @"detail": @"Skip to the next story when marked as seen."},
@@ -211,6 +219,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
             @{@"title": @"Save Profile Pictures", @"detail": @"Save profile pictures to your camera roll.", @"info": @"When enabled, you will be able to long press on a profile picture to get an alert asking if you want to save the profile picture."},
             @{@"title": @"Save Profile Posts", @"detail": @"Bulk save profile posts.", @"info": @"When enabled, you will see a pink save button on a user's profile page. Tap it and it will gather all loaded posts and will either save them to your camera roll or save them to a local folder.\n\nThe save button will only be able to gather posts that are actively loaded. If you want to save everything, make sure to scroll all the way to the bottom of the user's profile and tap the save button."},
             @{@"title": @"Save Method", @"detail": @"Save media to camera roll or local folder.", @"type": @"segment", @"options": @[ @"Camera Roll", @"Folder"]},
+            @{@"title": @"Download Quality", @"detail": @"Download the best quality instantly, or pick a resolution each time.", @"type": @"segment", @"options": @[@"Highest", @"Ask Me"], @"info": @"Highest: tapping the download button saves the best available rendition straight away.\n\nAsk Me: tapping it opens a menu listing every resolution the reel offers."},
             @{@"title": @"Save Audio Notes", @"detail": @"Save audio notes to your device."},
             @{@"title": @"Fullscreen Posts", @"detail": @"View posts in fullscreen mode."},
             @{@"title": @"Fullscreen Profile Pictures", @"detail": @"View profile pictures in fullscreen mode.", @"info": @"When enabled, you will be able to long press on a profile picture to get an alert asking if you want to view the profile picture in fullscreen mode."},
@@ -230,7 +239,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
             @{@"title": @"Hide Explore Tab", @"detail": @"Removes the Explore tab from the tab bar.", @"info": @"Requires an app restart to take effect."},
             @{@"title": @"Hide Reels Tab", @"detail": @"GET RID OF THE BRAINROT.", @"info": @"Requires an app restart to take effect."},
             @{@"title": @"Hide Messages Tab", @"detail": @"Removes the Direct Messages tab from the tab bar.", @"info": @"Requires an app restart to take effect."},
-            @{@"title": @"Messenger Mode", @"detail": @"Only Profile and Direct tabs; long-press the messages tab for Theta settings.", @"info": @"Hides all other tab bar items and swipe surfaces except Profile and Direct messages. When enabled, open Theta settings with a long press on the Direct messages tab (home tab long press is restored to Instagram\'s default). Requires an app restart."},
+            @{@"title": @"Messenger Mode", @"detail": @"Only Profile and Direct tabs; long-press the messages tab for Zeus settings.", @"info": @"Hides all other tab bar items and swipe surfaces except Profile and Direct messages. When enabled, open Zeus settings with a long press on the Direct messages tab (home tab long press is restored to Instagram\'s default). Requires an app restart."},
         ],
         @"Interface": @[
             @{@"title": @"Hide Create Tab/Button", @"detail": @"Hides the create tab and button."},
@@ -238,18 +247,20 @@ static UIColor *THColorFromHexString(NSString *hexString) {
             @{@"title": @"Hide Recent Searches", @"detail": @"Hide the recent searches in the search tab."},
             @{@"title": @"Follow Status Indicator", @"detail": @"Indicates if a user follows you.", @"info": @"When enabled, you will see a \"✅\" or \"❌\" next to a user's name on their profile page based on whether they follow you or not."},
             @{@"title": @"Hide Repost Button", @"detail": @"Hides the repost button in the feed/reels."},
-            @{@"title": @"Hide Theta From Screenshots", @"detail": @"Hides Theta buttons from screenshots and screen recordings.", @"info": @"When enabled, Theta UI elements (such as Mark as Seen, Save, Story Ghost buttons, etc.) will be invisible in screenshots and screen recordings, but still visible on screen."},
+            @{@"title": @"Hide Zeus From Screenshots", @"detail": @"Hides Zeus buttons from screenshots and screen recordings.", @"info": @"When enabled, Zeus UI elements (such as Mark as Seen, Save, Story Ghost buttons, etc.) will be invisible in screenshots and screen recordings, but still visible on screen."},
             @{@"title": @"Mentions Button Color", @"detail": @"Choose the color used for mentions buttons.", @"type": @"color"},
             @{@"title": @"Save Button Color", @"detail": @"Choose the color used for save buttons.", @"type": @"color"},
             @{@"title": @"Seen Button Color", @"detail": @"Choose the color used for seen buttons.", @"type": @"color"},
-            @{@"title": @"Reset Colors", @"detail": @"Reset all colors back to default.", @"type": @"action"}
+            @{@"title": @"Reset Colors", @"detail": @"Reset all colors back to default.", @"type": @"action"},
+            @{@"title": @"Zeus Theme", @"detail": @"Recolor the Zeus settings menu.", @"type": @"view", @"viewController": @"ZeusThemePickerViewController"},
+            @{@"title": @"Custom Theme Color", @"detail": @"Accent used when Zeus Theme is set to Custom.", @"type": @"color"}
         ],
         @"Miscellaneous": @[
-            @{@"title": @"Load Banner", @"detail": @"When Theta loads, see a banner."},
+            @{@"title": @"Load Banner", @"detail": @"When Zeus loads, see a banner."},
             @{@"title": @"Show Banners", @"detail": @"Upon certain actions, show a banner."},
             @{@"title": @"Haptic Feedback", @"detail": @"Enables haptic feedback for certain actions."},
             @{@"title": @"Lock Instagram", @"detail": @"Protect Instagram with Face ID/passcode.", @"requiresBiometrics": @YES},
-            @{@"title": @"Shake To Open", @"detail": @"Open Theta's settings with a shake."},
+            @{@"title": @"Shake To Open", @"detail": @"Open Zeus's settings with a shake."},
             @{@"title": @"Easter Eggs", @"detail": @"Enable fun easter eggs."},
             @{@"title": @"Clear App Cache", @"detail": @"Clear all cached files and data.", @"type": @"action"},
         ]
@@ -260,7 +271,9 @@ static UIColor *THColorFromHexString(NSString *hexString) {
     self.tableView.showsVerticalScrollIndicator = NO;
     self.tableView.showsHorizontalScrollIndicator = NO;
 
-    self.tableView.backgroundColor = [UIColor systemGroupedBackgroundColor];
+    // Themed here rather than at each call site; ZeusTheme falls back to the
+    // system colour when the selected theme leaves the role unset.
+    [ZeusTheme applyToTableView:self.tableView navigationController:self.navigationController];
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
 
     CGFloat spacerHeight = 10.0;
@@ -270,23 +283,23 @@ static UIColor *THColorFromHexString(NSString *hexString) {
     self.searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
     self.searchController.searchResultsUpdater = self;
     self.searchController.obscuresBackgroundDuringPresentation = NO;
-    self.searchController.searchBar.placeholder = @"Search Theta Settings";
+    self.searchController.searchBar.placeholder = @"Search Zeus Settings";
     self.searchController.searchBar.delegate = self;
-    self.searchController.searchBar.tintColor = [ThetaHelper iotaPinkColor];
+    self.searchController.searchBar.tintColor = [ZeusHelper iotaPinkColor];
     self.navigationItem.searchController = self.searchController;
     self.definesPresentationContext = YES;
 
     self.tableView.tableHeaderView = spacer;
 
     UIImage *backImage = [UIImage systemImageNamed:@"chevron.down"];
-    backImage = [backImage imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+    backImage = [backImage imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithImage:backImage
                                                                              style:UIBarButtonItemStylePlain
                                                                             target:self
                                                                             action:@selector(dismissViewController)];
 
     UIImage *applyImage = [UIImage systemImageNamed:@"gearshape"];
-    applyImage = [applyImage imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+    applyImage = [applyImage imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
     // Plain matches the folder/chevron buttons. Done becomes a filled tinted chip on
     // iOS 26+ (Liquid Glass), which makes a pink gear invisible on a pink circle.
     UIBarButtonItem *applyButton = [[UIBarButtonItem alloc] initWithImage:applyImage
@@ -295,7 +308,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
                                                                    action:nil];
 
     UIImage *audioNotesImage = [UIImage systemImageNamed:@"folder"];
-    audioNotesImage = [audioNotesImage imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+    audioNotesImage = [audioNotesImage imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
     UIBarButtonItem *audioNotesButton = [[UIBarButtonItem alloc] initWithImage:audioNotesImage
                                                                          style:UIBarButtonItemStylePlain
                                                                         target:self
@@ -396,19 +409,19 @@ static UIColor *THColorFromHexString(NSString *hexString) {
     [rightBarButtonItems addObject:audioNotesButton];
     self.navigationItem.rightBarButtonItems = rightBarButtonItems;
 
-    self.navigationController.navigationBar.tintColor = [ThetaHelper iotaPinkColor];
+    self.navigationController.navigationBar.tintColor = [ZeusHelper iotaPinkColor];
 
-    LinkItem *twitter = [LinkItem new];
-    twitter.title = @"Follow @objcmsgsend on X";
-    twitter.linkDetail = @"Stay updated with the latest news and updates.";
-    twitter.urlString = @"https://twitter.com/objcmsgsend";
+    LinkItem *instagram = [LinkItem new];
+    instagram.title = @"Follow @nijjermind_ on Instagram";
+    instagram.linkDetail = @"Stay updated with the latest news and updates.";
+    instagram.urlString = @"https://instagram.com/nijjermind_";
 
     LinkItem *discord = [LinkItem new];
     discord.title = @"Join the Discord Server";
     discord.linkDetail = @"Join the community for support and discussions.";
-    discord.urlString = @"https://discord.gg/8b36UrNPEw";
+    discord.urlString = @"https://discord.gg/FSpRWcfKZ";
 
-    self.linkItems = @[twitter, discord];
+    self.linkItems = @[instagram, discord];
 
     [self setupAnimatedTitle];
     [self setupVersionStrings];
@@ -420,7 +433,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
         titleContainer.translatesAutoresizingMaskIntoConstraints = NO;
         self.navigationItem.titleView = titleContainer;
         
-        NSString *titleText = @"THETA";
+        NSString *titleText = @"ZEUS";
         UIFont *nativeFont = [UIFont fontWithName:@"HelveticaNeue-Bold" size:24.0];
         
         if (!nativeFont) {
@@ -443,7 +456,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
             UILabel *letterLabel = [[UILabel alloc] init];
             letterLabel.text = letter;
             letterLabel.font = nativeFont;
-            	letterLabel.textColor = [ThetaHelper iotaPinkColor];
+            	letterLabel.textColor = [ZeusHelper iotaPinkColor];
             letterLabel.alpha = 0.0;
             letterLabel.translatesAutoresizingMaskIntoConstraints = NO;
             
@@ -481,11 +494,11 @@ static UIColor *THColorFromHexString(NSString *hexString) {
         self.instagramVersion = @"Unknown";
     }
     
-    // Get Theta build version from THEOS_PACKAGE_BASE_VERSION
-    #ifdef THETA_VERSION
-        self.thetaVersion = @THETA_VERSION;
+    // Get Zeus build version from THEOS_PACKAGE_BASE_VERSION
+    #ifdef ZEUS_VERSION
+        self.zeusVersion = @ZEUS_VERSION;
     #else
-        self.thetaVersion = @"Unknown";
+        self.zeusVersion = @"Unknown";
     #endif
 }
 
@@ -555,7 +568,7 @@ static UIColor *THColorFromHexString(NSString *hexString) {
     [[NSUserDefaults standardUserDefaults] synchronize];
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        [ThetaHelper showToastWithTitle:@"Settings Applied!" subtitle:@"App will need to be restarted." icon:[ThetaHelper imageFromEmojiString:@"✅" width:300] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Settings Applied!" subtitle:@"App will need to be restarted." icon:[ZeusHelper imageFromEmojiString:@"✅" width:300] autoHide:3 openURL:nil];
 
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [[UIApplication sharedApplication] performSelector:@selector(suspend)];
@@ -685,7 +698,7 @@ NSData *compressData(NSData *uncompressedData) {
                     @try {
                         storedColor = [NSKeyedUnarchiver unarchivedObjectOfClass:[UIColor class] fromData:storedData error:nil];
                     } @catch (__unused NSException *e) {}
-                    NSString *hex = THHexStringFromColor(storedColor);
+                    NSString *hex = ZUHexStringFromColor(storedColor);
                     if (hex) exportedSetting[@"colorHex"] = hex;
                 }
             } else if ([type isEqualToString:@"segment"]) {
@@ -717,7 +730,7 @@ NSData *compressData(NSData *uncompressedData) {
 
             if (!qrImage) {
                 NSLog(@"Error: qrImage is nil");
-                [ThetaHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to generate QR code image." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to generate QR code image." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
                 return;
             }
 
@@ -726,7 +739,7 @@ NSData *compressData(NSData *uncompressedData) {
 
             if (!scaledQRImage) {
                 NSLog(@"Error: scaledQRImage is nil");
-                [ThetaHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to scale QR code image." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to scale QR code image." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
                 return;
             }
 
@@ -734,7 +747,7 @@ NSData *compressData(NSData *uncompressedData) {
             CGImageRef cgImage = [context createCGImage:scaledQRImage fromRect:scaledQRImage.extent];
             if (!cgImage) {
                 NSLog(@"Error: cgImage is nil");
-                [ThetaHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to create CGImage from QR code." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to create CGImage from QR code." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
                 return;
             }
             UIImage *qrUIImage = [UIImage imageWithCGImage:cgImage];
@@ -742,12 +755,12 @@ NSData *compressData(NSData *uncompressedData) {
 
             if (!qrUIImage) {
                 NSLog(@"Error: qrUIImage is nil");
-                [ThetaHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to create UIImage from QR code." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"QR Error" subtitle:@"Failed to create UIImage from QR code." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
                 return;
             }
 
             UIActivityViewController *activityViewController = [[UIActivityViewController alloc] initWithActivityItems:@[qrUIImage] applicationActivities:nil];
-            [[ThetaHelper topViewController] presentViewController:activityViewController animated:YES completion:nil];
+            [[ZeusHelper topViewController] presentViewController:activityViewController animated:YES completion:nil];
         } @catch (NSException *exception) {
             NSLog(@"Error generating QR code: %@", exception);
         }
@@ -762,7 +775,7 @@ NSData *compressData(NSData *uncompressedData) {
     NSError *error = nil;
     AVCaptureDeviceInput *input = [AVCaptureDeviceInput deviceInputWithDevice:device error:&error];
     if (!input) {
-        [ThetaHelper showToastWithTitle:@"Camera Error" subtitle:@"Unable to access camera." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Camera Error" subtitle:@"Unable to access camera." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
         return;
     }
     [session addInput:input];
@@ -809,7 +822,7 @@ NSData *compressData(NSData *uncompressedData) {
                         @try {
                             storedColor = [NSKeyedUnarchiver unarchivedObjectOfClass:[UIColor class] fromData:storedData error:nil];
                         } @catch (__unused NSException *e) {}
-                        NSString *hex = THHexStringFromColor(storedColor);
+                        NSString *hex = ZUHexStringFromColor(storedColor);
                         if (hex) exportedSetting[@"colorHex"] = hex;
                     }
                 } else if ([type isEqualToString:@"segment"]) {
@@ -828,7 +841,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (error) {
             NSLog(@"Error exporting settings: %@", error);
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to export settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to export settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -837,7 +850,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!jsonString) {
             NSLog(@"Failed to create JSON string");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to create settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to create settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -847,7 +860,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!data) {
             NSLog(@"Failed to convert JSON string to data");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to process settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to process settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -859,7 +872,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (result != Z_OK) {
             NSLog(@"Compression failed with error: %d", result);
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to compress settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to compress settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -871,7 +884,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!base64String) {
             NSLog(@"Failed to base64 encode compressed data");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to encode settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to encode settings data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -881,7 +894,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!qrFilter) {
             NSLog(@"QR filter not available");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"QR code generation not available." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"QR code generation not available." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -890,7 +903,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!qrData) {
             NSLog(@"Error: qrData is nil");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to process QR data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to process QR data." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -901,7 +914,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!qrImage) {
             NSLog(@"Error: qrImage is nil");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to generate QR image." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to generate QR image." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -912,7 +925,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!scaledQRImage) {
             NSLog(@"Error: scaledQRImage is nil");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to scale QR image." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to scale QR image." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -922,7 +935,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!cgImage) {
             NSLog(@"Error: cgImage is nil");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to create CG image." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to create CG image." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -933,7 +946,7 @@ NSData *compressData(NSData *uncompressedData) {
         if (!qrUIImage) {
             NSLog(@"Error: qrUIImage is nil");
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to create UIImage." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to create UIImage." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
@@ -959,13 +972,13 @@ NSData *compressData(NSData *uncompressedData) {
         [self presentViewController:navController animated:YES completion:nil];
         
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Settings Exported!" subtitle:@"Scan the QR code to import settings." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Settings Exported!" subtitle:@"Scan the QR code to import settings." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
         }
         
     } @catch (NSException *exception) {
         NSLog(@"Error generating QR code: %@", exception);
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"An error occurred while exporting settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"An error occurred while exporting settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
     }
 }
@@ -992,7 +1005,7 @@ NSData *compressData(NSData *uncompressedData) {
                         if (!storedColor) {
                             @try { storedColor = [NSKeyedUnarchiver unarchiveObjectWithData:storedData]; } @catch (__unused NSException *e) {}
                         }
-                        NSString *hex = THHexStringFromColor(storedColor);
+                        NSString *hex = ZUHexStringFromColor(storedColor);
                         if (hex) exportedSetting[@"colorHex"] = hex;
                     }
                 }
@@ -1005,24 +1018,24 @@ NSData *compressData(NSData *uncompressedData) {
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:exportedSettings options:NSJSONWritingPrettyPrinted error:&error];
         if (!jsonData) {
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to build settings JSON." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to build settings JSON." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         if (!jsonString) {
             if (ENABLED(@"Show Banners")) {
-                [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to encode JSON string." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Failed to encode JSON string." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             }
             return;
         }
         [UIPasteboard generalPasteboard].string = jsonString;
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Exported" subtitle:@"Settings JSON copied to clipboard." icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Exported" subtitle:@"Settings JSON copied to clipboard." icon:[UIImage systemImageNamed:@"doc.on.doc.fill"] autoHide:3 openURL:nil];
         }
     } @catch (__unused NSException *e) {
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Export Failed" subtitle:@"Unexpected error." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Export Failed" subtitle:@"Unexpected error." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
     }
 }
@@ -1040,27 +1053,27 @@ NSData *compressData(NSData *uncompressedData) {
     NSLog(@"Encrypted string: %@", encryptedString);
 
     if (!encryptedString || encryptedString.length == 0) {
-        [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"No settings string provided." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"No settings string provided." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
         return;
     }
 
     NSData *data = [[NSData alloc] initWithBase64EncodedString:encryptedString options:0];
     if (!data) {
-        [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid base64 string." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid base64 string." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
         return;
     }
 
     NSData *decompressedData = [self decompressData:data];
     NSLog(@"Decompressed data: %@", decompressedData);
     if (!decompressedData) {
-        [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Decompression failed." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Decompression failed." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
         return;
     }
 
     NSError *error = nil;
     NSDictionary *importedSettings = [NSJSONSerialization JSONObjectWithData:decompressedData options:0 error:&error];
     if (!importedSettings || error) {
-        [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid JSON." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid JSON." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
         return;
     }
 
@@ -1077,7 +1090,7 @@ NSData *compressData(NSData *uncompressedData) {
                 }
                 NSString *hex = setting[@"colorHex"];
                 if (title && [hex isKindOfClass:[NSString class]] && hex.length > 0) {
-                    UIColor *color = THColorFromHexString(hex);
+                    UIColor *color = ZUColorFromHexString(hex);
                     if (color) {
                         NSString *colorKey = [NSString stringWithFormat:@"%@_Color", title];
                         NSError *err = nil;
@@ -1127,18 +1140,18 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
     [self.qrScanVC dismissViewControllerAnimated:YES completion:^{
         NSData *data = [[NSData alloc] initWithBase64EncodedString:qrString options:0];
         if (!data) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid base64 string." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid base64 string." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         NSData *decompressedData = [self decompressData:data];
         if (!decompressedData) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Decompression failed." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Decompression failed." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         NSError *error = nil;
         NSDictionary *importedSettings = [NSJSONSerialization JSONObjectWithData:decompressedData options:0 error:&error];
         if (!importedSettings || error) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid JSON." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Invalid JSON." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         for (SubMenuItem *subMenu in self.subMenus) {
@@ -1153,7 +1166,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
                     }
                     NSString *hex = setting[@"colorHex"];
                     if (title && [hex isKindOfClass:[NSString class]] && hex.length > 0) {
-                        UIColor *color = THColorFromHexString(hex);
+                        UIColor *color = ZUColorFromHexString(hex);
                         if (color) {
                             NSString *colorKey = [NSString stringWithFormat:@"%@_Color", title];
                             NSError *err = nil;
@@ -1167,7 +1180,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
             }
         }
         [[NSUserDefaults standardUserDefaults] synchronize];
-        [ThetaHelper showToastWithTitle:@"Settings Imported!" subtitle:@"App will need to be restarted." icon:[ThetaHelper imageFromEmojiString:@"✅" width:300] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Settings Imported!" subtitle:@"App will need to be restarted." icon:[ZeusHelper imageFromEmojiString:@"✅" width:300] autoHide:2 openURL:nil];
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             [[UIApplication sharedApplication] performSelector:@selector(suspend)];
             exit(0);
@@ -1181,7 +1194,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
     UIImage *selectedImage = info[UIImagePickerControllerOriginalImage];
     [picker dismissViewControllerAnimated:YES completion:^{
         if (!selectedImage) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"No image selected." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"No image selected." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         // Detect QR code from image
@@ -1189,31 +1202,31 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
         CIDetector *detector = [CIDetector detectorOfType:CIDetectorTypeQRCode context:nil options:@{CIDetectorAccuracy:CIDetectorAccuracyHigh}];
         NSArray *features = [detector featuresInImage:ciImage];
         if (features.count == 0) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"No QR code found." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"No QR code found." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         CIQRCodeFeature *qrFeature = features.firstObject;
         NSString *qrString = qrFeature.messageString;
         if (!qrString) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"QR code unreadable." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"QR code unreadable." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         // Decode base64 and decompress
         NSData *compressedData = [[NSData alloc] initWithBase64EncodedString:qrString options:0];
         if (!compressedData) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Base64 decode failed." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Base64 decode failed." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         // Decompress
         NSData *jsonData = [self decompressData:compressedData];
         if (!jsonData) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"Decompression failed." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"Decompression failed." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         NSError *error = nil;
         NSDictionary *importedSettings = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
         if (!importedSettings || error) {
-            [ThetaHelper showToastWithTitle:@"Import Error" subtitle:@"JSON decode failed." icon:[ThetaHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Import Error" subtitle:@"JSON decode failed." icon:[ZeusHelper imageFromEmojiString:@"❌" width:200] autoHide:2 openURL:nil];
             return;
         }
         // Import settings (including colorHex when present)
@@ -1228,7 +1241,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
                 }
                 NSString *hex = setting[@"colorHex"];
                 if (title && [hex isKindOfClass:[NSString class]] && hex.length > 0) {
-                    UIColor *color = THColorFromHexString(hex);
+                    UIColor *color = ZUColorFromHexString(hex);
                     if (color) {
                         NSString *colorKey = [NSString stringWithFormat:@"%@_Color", title];
                         NSError *err = nil;
@@ -1352,6 +1365,17 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
 	}
 }
 
+
+// One choke point for cell theming: catches every cell type on the screen
+// without touching the individual cell factories.
+- (void)zeusThemeDidChange {
+    [ZeusTheme applyToTableView:self.tableView navigationController:self.navigationController];
+    [self.tableView reloadData];
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
+    [ZeusTheme decorateCell:cell];
+}
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     static NSString *cellIdentifier = @"Cell";
@@ -1512,9 +1536,9 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
                 }
                 
                 UIImage *baseIcon = [UIImage systemImageNamed:iconName];
-                UIImage *icon = [baseIcon imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+                UIImage *icon = [baseIcon imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
                 [button setImage:icon forState:UIControlStateNormal];
-                button.tintColor = [ThetaHelper iotaPinkColor];
+                button.tintColor = [ZeusHelper iotaPinkColor];
                 button.accessibilityLabel = accessibilityLabel;
                 [button addTarget:self action:actionSelector forControlEvents:UIControlEventTouchUpInside];
                 [button sizeToFit];
@@ -1591,7 +1615,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
             if (subMenu.iconName) {
                 UIImage *icon = [UIImage systemImageNamed:subMenu.iconName];
                 cell.imageView.image = icon;
-                cell.imageView.tintColor = [ThetaHelper iotaPinkColor];
+                cell.imageView.tintColor = [ZeusHelper iotaPinkColor];
             } else {
                 cell.imageView.image = nil;
             }
@@ -1615,10 +1639,10 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
             LinkItem *link = self.linkItems[indexPath.row];
             cell.textLabel.text = link.title;
             cell.detailTextLabel.text = link.linkDetail;
-            cell.textLabel.textColor = [ThetaHelper iotaPinkColor];
+            cell.textLabel.textColor = [ZeusHelper iotaPinkColor];
             cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
             cell.imageView.image = [UIImage systemImageNamed:@"link"];
-            cell.imageView.tintColor = [ThetaHelper iotaPinkColor];
+            cell.imageView.tintColor = [ZeusHelper iotaPinkColor];
             cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
             return cell;
         }
@@ -1644,7 +1668,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
             if ([d[@"title"] isEqualToString:title]) { message = d[@"info"] ?: d[@"detail"] ?: @""; break; }
         }
     }
-    [ThetaHelper showCustomAlertWithActions:title description:message actions:@[@{ @"title": @"OK", @"handler": ^(id s) {} }]];
+    [ZeusHelper showCustomAlertWithActions:title description:message actions:@[@{ @"title": @"OK", @"handler": ^(id s) {} }]];
 }
 
 - (void)searchSwitchChanged:(UISwitch *)sender {
@@ -1657,7 +1681,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
 
     if ([result.settingTitle isEqualToString:@"Easter Eggs"] && sender.isOn) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [ThetaHelper showToastWithTitle:@"Easter Eggs not implemented yet!" subtitle:@"Will be soon, stay tuned!" icon:[ThetaHelper imageFromEmojiString:@"🐥" width:300] autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Easter Eggs not implemented yet!" subtitle:@"Will be soon, stay tuned!" icon:[ZeusHelper imageFromEmojiString:@"🐥" width:300] autoHide:4 openURL:nil];
         });
     }
 
@@ -1673,7 +1697,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
     });
     if ([sSearchRestartRequired containsObject:result.settingTitle]) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [ThetaHelper showToastWithTitle:@"App Restart Required" subtitle:@"Restart the app for changes to apply." icon:[ThetaHelper imageFromEmojiString:@"⚠️" width:300] autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"App Restart Required" subtitle:@"Restart the app for changes to apply." icon:[ZeusHelper imageFromEmojiString:@"⚠️" width:300] autoHide:4 openURL:nil];
         });
     }
 }
@@ -1681,7 +1705,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
 - (void)handleSegmentChange:(UISegmentedControl *)sender {
     NSString *title = sender.accessibilityIdentifier;
     if (title.length > 0) {
-        [ThetaHelper storeSegmentIndex:sender.selectedSegmentIndex forSettingTitle:title];
+        [ZeusHelper storeSegmentIndex:sender.selectedSegmentIndex forSettingTitle:title];
     }
 }
 
@@ -1719,7 +1743,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
     }
 
     if (ENABLED(@"Show Banners")) {
-        [ThetaHelper showToastWithTitle:@"Colors Reset" subtitle:@"Button colors restored to default." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Colors Reset" subtitle:@"Button colors restored to default." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
     }
 }
 
@@ -1803,7 +1827,7 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
     
     if (ENABLED(@"Show Banners")) {
         NSString *subtitle = filesDeleted > 0 ? [NSString stringWithFormat:@"Cleared %lu file%@ (%@)", (unsigned long)filesDeleted, filesDeleted == 1 ? @"" : @"s", sizeString] : @"Cache cleared.";
-        [ThetaHelper showToastWithTitle:@"Cache Cleared" subtitle:subtitle icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Cache Cleared" subtitle:subtitle icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
     }
 }
 
@@ -1825,8 +1849,8 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
         // Set light grey color regardless of dark mode
         versionLabel.textColor = [UIColor colorWithRed:0.4 green:0.4 blue:0.4 alpha:1.0];
         
-        NSString *versionText = [NSString stringWithFormat:@"Made with ❤️ by @objc_msgSend\nInstagram v%@ | Theta %@", 
-                                self.instagramVersion, self.thetaVersion];
+        NSString *versionText = [NSString stringWithFormat:@"Made with ❤️ by nijjermind\nInstagram v%@ | Zeus %@", 
+                                self.instagramVersion, self.zeusVersion];
         versionLabel.text = versionText;
         
         [footerView addSubview:versionLabel];
@@ -1908,14 +1932,14 @@ didOutputMetadataObjects:(NSArray<__kindof AVMetadataObject *> *)metadataObjects
 - (void)reloadNavbarItems {
     // Reload the navbar items based on current "Save Audio Notes" setting
     UIImage *audioNotesImage = [UIImage systemImageNamed:@"folder"];
-    audioNotesImage = [audioNotesImage imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+    audioNotesImage = [audioNotesImage imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
     UIBarButtonItem *audioNotesButton = [[UIBarButtonItem alloc] initWithImage:audioNotesImage
                                                                          style:UIBarButtonItemStylePlain
                                                                         target:self
                                                                         action:@selector(openAudioNotes)];
     
     UIImage *applyImage = [UIImage systemImageNamed:@"gearshape"];
-    applyImage = [applyImage imageWithTintColor:[ThetaHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
+    applyImage = [applyImage imageWithTintColor:[ZeusHelper iotaPinkColor] renderingMode:UIImageRenderingModeAlwaysOriginal];
     // Plain matches the folder/chevron buttons. Done becomes a filled tinted chip on
     // iOS 26+ (Liquid Glass), which makes a pink gear invisible on a pink circle.
     UIBarButtonItem *applyButton = [[UIBarButtonItem alloc] initWithImage:applyImage

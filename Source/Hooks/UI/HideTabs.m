@@ -2,7 +2,7 @@ static void (*orig_hideTabs)(id self, SEL _cmd, BOOL animated);
 
 /// IGTabBar keeps parallel lists; `_tabButtons` is the canonical mutable ivar (see IGTabBar `buttons` / `_tabButtons`).
 /// Works whether the stored value is NSMutableArray (mutate in-place) or plain NSArray (copy, trim, write back).
-static void theta_removeMatchingViewsFromTabBarMutableArrays(id tabBar, UIView *tabView, NSString *accessibilityLabel) {
+static void zeus_removeMatchingViewsFromTabBarMutableArrays(id tabBar, UIView *tabView, NSString *accessibilityLabel) {
     if (!tabBar || !accessibilityLabel.length) {
         return;
     }
@@ -37,7 +37,7 @@ static void theta_removeMatchingViewsFromTabBarMutableArrays(id tabBar, UIView *
     }
 }
 
-static UIView *theta_findViewWithAccessibilityLabel(NSString *label, UIView *root) {
+static UIView *zeus_findViewWithAccessibilityLabel(NSString *label, UIView *root) {
     if (!root || !label.length) {
         return nil;
     }
@@ -57,13 +57,13 @@ static UIView *theta_findViewWithAccessibilityLabel(NSString *label, UIView *roo
 
 /// Removes the whole tab “column” (fixes empty gap), not only the inner labeled view. Handles UIStackView arranged subviews.
 /// Only walks ancestors inside `tabBar` so we never detach the tab bar from the window. Prefers parents with 2+ subviews (sibling columns).
-static void theta_detachTabSlotForLabel(UIView *start, UIView *tabBar, NSString *accessibilityLabel) {
+static void zeus_detachTabSlotForLabel(UIView *start, UIView *tabBar, NSString *accessibilityLabel) {
     if (!tabBar || !accessibilityLabel.length) {
         return;
     }
     UIView *v = start;
     if (!v || ![v isDescendantOfView:tabBar]) {
-        v = theta_findViewWithAccessibilityLabel(accessibilityLabel, tabBar);
+        v = zeus_findViewWithAccessibilityLabel(accessibilityLabel, tabBar);
     }
     if (!v) {
         return;
@@ -91,7 +91,7 @@ static void theta_detachTabSlotForLabel(UIView *start, UIView *tabBar, NSString 
 }
 
 /// Removes the tab’s UIViewController at the same index as `_buttons` so swipe / pager skips Reels or Explore.
-static void theta_removeTabViewControllerAtIndex(id tabBarController, NSUInteger index) {
+static void zeus_removeTabViewControllerAtIndex(id tabBarController, NSUInteger index) {
     if (!tabBarController) {
         return;
     }
@@ -159,7 +159,7 @@ static void theta_removeTabViewControllerAtIndex(id tabBarController, NSUInteger
     }
 }
 
-static BOOL theta_removeTabWithAccessibilityLabel(NSString *label, NSMutableArray *buttons, id tabBar, id tabBarController) {
+static BOOL zeus_removeTabWithAccessibilityLabel(NSString *label, NSMutableArray *buttons, id tabBar, id tabBarController) {
     if (!label.length) {
         return NO;
     }
@@ -173,17 +173,17 @@ static BOOL theta_removeTabWithAccessibilityLabel(NSString *label, NSMutableArra
         if (![v.accessibilityLabel isEqualToString:label]) {
             continue;
         }
-        theta_removeTabViewControllerAtIndex(tabBarController, (NSUInteger)i);
+        zeus_removeTabViewControllerAtIndex(tabBarController, (NSUInteger)i);
         [buttons removeObjectAtIndex:(NSUInteger)i];
         removedAny = YES;
-        theta_removeMatchingViewsFromTabBarMutableArrays(tabBar, v, label);
-        theta_detachTabSlotForLabel(v, (UIView *)tabBar, label);
+        zeus_removeMatchingViewsFromTabBarMutableArrays(tabBar, v, label);
+        zeus_detachTabSlotForLabel(v, (UIView *)tabBar, label);
     }
     return removedAny;
 }
 
 /// Keeps tabs whose label looks like Profile or DMs. Instagram varies copy ("Messages", "Direct messages", localized strings).
-static BOOL theta_messengerModeKeepsTabAccessibilityLabel(NSString *label) {
+static BOOL zeus_messengerModeKeepsTabAccessibilityLabel(NSString *label) {
     if (!label.length) {
         return NO;
     }
@@ -202,7 +202,7 @@ static BOOL theta_messengerModeKeepsTabAccessibilityLabel(NSString *label) {
 }
 
 /// `IGTabBarController` exposes `_profileButton` / `_directInboxButton`; `_buttons` entries are often a wrapper, so labels may be empty or on a subview.
-static BOOL theta_messengerTabViewIsProfileOrDirectIvar(UIView *tab, id tabBarController) {
+static BOOL zeus_messengerTabViewIsProfileOrDirectIvar(UIView *tab, id tabBarController) {
     if (!tab || !tabBarController) {
         return NO;
     }
@@ -236,7 +236,7 @@ static BOOL theta_messengerTabViewIsProfileOrDirectIvar(UIView *tab, id tabBarCo
 }
 
 /// Removes every tab whose accessibility label is not kept by messenger mode (Profile / Direct messages).
-static BOOL theta_removeTabsNotMatchingMessengerMode(NSMutableArray *buttons, id tabBar, id tabBarController) {
+static BOOL zeus_removeTabsNotMatchingMessengerMode(NSMutableArray *buttons, id tabBar, id tabBarController) {
     if (!buttons.count) {
         return NO;
     }
@@ -248,23 +248,23 @@ static BOOL theta_removeTabsNotMatchingMessengerMode(NSMutableArray *buttons, id
         }
         UIView *v = (UIView *)obj;
         NSString *label = v.accessibilityLabel ?: @"";
-        if (theta_messengerTabViewIsProfileOrDirectIvar(v, tabBarController)) {
+        if (zeus_messengerTabViewIsProfileOrDirectIvar(v, tabBarController)) {
             continue;
         }
-        if (theta_messengerModeKeepsTabAccessibilityLabel(label)) {
+        if (zeus_messengerModeKeepsTabAccessibilityLabel(label)) {
             continue;
         }
-        theta_removeTabViewControllerAtIndex(tabBarController, (NSUInteger)i);
+        zeus_removeTabViewControllerAtIndex(tabBarController, (NSUInteger)i);
         [buttons removeObjectAtIndex:(NSUInteger)i];
         removedAny = YES;
-        theta_removeMatchingViewsFromTabBarMutableArrays(tabBar, v, label);
-        theta_detachTabSlotForLabel(v, (UIView *)tabBar, label);
+        zeus_removeMatchingViewsFromTabBarMutableArrays(tabBar, v, label);
+        zeus_detachTabSlotForLabel(v, (UIView *)tabBar, label);
     }
     return removedAny;
 }
 
 /// If present, call IGTabBar’s own layout so button frames match internal state.
-static void theta_tryInvokeTabBarPrivateLayout(id tabBar) {
+static void zeus_tryInvokeTabBarPrivateLayout(id tabBar) {
     if (!tabBar) {
         return;
     }
@@ -283,7 +283,7 @@ static void theta_tryInvokeTabBarPrivateLayout(id tabBar) {
 }
 
 /// Removing a tab item skips IGTabBar’s normal layout pass; force redistribution of the remaining buttons.
-static void theta_relayoutTabBarAfterButtonRemoval(UIView *tabBar, UIViewController *controller) {
+static void zeus_relayoutTabBarAfterButtonRemoval(UIView *tabBar, UIViewController *controller) {
     if (!tabBar) {
         return;
     }
@@ -306,7 +306,7 @@ static void theta_relayoutTabBarAfterButtonRemoval(UIView *tabBar, UIViewControl
             [controller.view setNeedsLayout];
         }
         [tabBar updateConstraintsIfNeeded];
-        theta_tryInvokeTabBarPrivateLayout(tabBar);
+        zeus_tryInvokeTabBarPrivateLayout(tabBar);
         [tabBar layoutIfNeeded];
         if (controller) {
             [controller.view layoutIfNeeded];
@@ -316,7 +316,7 @@ static void theta_relayoutTabBarAfterButtonRemoval(UIView *tabBar, UIViewControl
     dispatch_async(dispatch_get_main_queue(), apply);
 }
 
-static void theta_syncSwipeCoordinatorAndTabSelection(id tabBarController) {
+static void zeus_syncSwipeCoordinatorAndTabSelection(id tabBarController) {
     if (!tabBarController) {
         return;
     }
@@ -362,7 +362,7 @@ static void theta_syncSwipeCoordinatorAndTabSelection(id tabBarController) {
 }
 
 /// Keeps only PROFILE and DIRECT swipe surfaces (matches `tabStringFromSurfaceIntent`).
-static void theta_trimSurfacesToMessengerOnly(id swipeCoordinator, BOOL *outMutated) {
+static void zeus_trimSurfacesToMessengerOnly(id swipeCoordinator, BOOL *outMutated) {
     if (!swipeCoordinator) {
         return;
     }
@@ -393,7 +393,7 @@ static void theta_trimSurfacesToMessengerOnly(id swipeCoordinator, BOOL *outMuta
     }
 }
 
-static void theta_trimTabBarSurfacesToMessengerOnly(id tabBarController, BOOL *outMutated) {
+static void zeus_trimTabBarSurfacesToMessengerOnly(id tabBarController, BOOL *outMutated) {
     id tabBarSurfacesObj = nil;
     @try {
         tabBarSurfacesObj = [tabBarController valueForKey:@"_tabBarSurfaces"];
@@ -422,7 +422,7 @@ static void theta_trimTabBarSurfacesToMessengerOnly(id tabBarController, BOOL *o
 }
 
 // Returns YES if the tab with the given surface intent should be removed
-static BOOL theta_shouldRemoveSurfaceIntent(NSString *intent) {
+static BOOL zeus_shouldRemoveSurfaceIntent(NSString *intent) {
     if ([intent isEqualToString:@"FEED"]   && ENABLED(@"Hide Feed Tab"))     return YES;
     if ([intent isEqualToString:@"CLIPS"]  && ENABLED(@"Hide Reels Tab"))    return YES;
     if ([intent isEqualToString:@"SEARCH"] && ENABLED(@"Hide Explore Tab"))  return YES;
@@ -431,13 +431,13 @@ static BOOL theta_shouldRemoveSurfaceIntent(NSString *intent) {
 }
 
 // Returns YES if any individual tab-hide toggle is active
-static BOOL theta_anyTabHideEnabled(void) {
+static BOOL zeus_anyTabHideEnabled(void) {
     return ENABLED(@"Hide Feed Tab") || ENABLED(@"Hide Reels Tab")
         || ENABLED(@"Hide Explore Tab") || ENABLED(@"Hide Messages Tab");
 }
 
 // Walks the full VC hierarchy (children + presented) to find IGTabBarController.
-static UIViewController *theta_findIGTabBarController(void) {
+static UIViewController *zeus_findIGTabBarController(void) {
     Class cls = objc_getClass("IGTabBarController");
     if (!cls) return nil;
     UIWindow *win = [UIApplication sharedApplication].keyWindow;
@@ -460,7 +460,7 @@ static UIViewController *theta_findIGTabBarController(void) {
 
 // After updating the surface data model, force the tab bar's UICollectionView (floating
 // glass tab bar) to reload so it renders the correct number of slots without gaps.
-static void theta_reloadTabBarCollectionViews(id tabBarController) {
+static void zeus_reloadTabBarCollectionViews(id tabBarController) {
     if (!tabBarController) return;
     UIView *tabBar = nil;
     @try { tabBar = ((id(*)(id,SEL))objc_msgSend)(tabBarController, @selector(tabBar)); } @catch (__unused NSException *e) {}
@@ -498,10 +498,10 @@ static void theta_reloadTabBarCollectionViews(id tabBarController) {
 }
 
 // Core tab-hiding logic — safe to call directly without going through viewWillAppear:.
-static void THApplyTabHidingNow(id tabBarController) {
+static void ZUApplyTabHidingNow(id tabBarController) {
     if (!tabBarController) return;
     BOOL messengerMode = ENABLED(@"Messenger Mode");
-    BOOL anyTabHide = theta_anyTabHideEnabled();
+    BOOL anyTabHide = zeus_anyTabHideEnabled();
     if (!messengerMode && !anyTabHide) return;
 
     @try {
@@ -515,34 +515,34 @@ static void THApplyTabHidingNow(id tabBarController) {
             NSMutableArray *buttons = [(NSArray *)buttonsObj mutableCopy];
             id tabBar = ((id (*)(id, SEL))objc_msgSend)(tabBarController, @selector(tabBar));
             if (messengerMode) {
-                removedTabButtons |= theta_removeTabsNotMatchingMessengerMode(buttons, tabBar, tabBarController);
+                removedTabButtons |= zeus_removeTabsNotMatchingMessengerMode(buttons, tabBar, tabBarController);
             } else {
                 if (ENABLED(@"Hide Reels Tab")) {
-                    removedTabButtons |= theta_removeTabWithAccessibilityLabel(@"Reels", buttons, tabBar, tabBarController);
+                    removedTabButtons |= zeus_removeTabWithAccessibilityLabel(@"Reels", buttons, tabBar, tabBarController);
                 }
                 if (ENABLED(@"Hide Explore Tab")) {
-                    removedTabButtons |= theta_removeTabWithAccessibilityLabel(@"Explore", buttons, tabBar, tabBarController);
+                    removedTabButtons |= zeus_removeTabWithAccessibilityLabel(@"Explore", buttons, tabBar, tabBarController);
                 }
                 if (ENABLED(@"Hide Feed Tab")) {
-                    removedTabButtons |= theta_removeTabWithAccessibilityLabel(@"Home", buttons, tabBar, tabBarController);
-                    removedTabButtons |= theta_removeTabWithAccessibilityLabel(@"Feed", buttons, tabBar, tabBarController);
+                    removedTabButtons |= zeus_removeTabWithAccessibilityLabel(@"Home", buttons, tabBar, tabBarController);
+                    removedTabButtons |= zeus_removeTabWithAccessibilityLabel(@"Feed", buttons, tabBar, tabBarController);
                 }
                 if (ENABLED(@"Hide Messages Tab")) {
-                    removedTabButtons |= theta_removeTabWithAccessibilityLabel(@"Direct messages", buttons, tabBar, tabBarController);
-                    removedTabButtons |= theta_removeTabWithAccessibilityLabel(@"Messages", buttons, tabBar, tabBarController);
+                    removedTabButtons |= zeus_removeTabWithAccessibilityLabel(@"Direct messages", buttons, tabBar, tabBarController);
+                    removedTabButtons |= zeus_removeTabWithAccessibilityLabel(@"Messages", buttons, tabBar, tabBarController);
                 }
             }
             if (removedTabButtons) {
                 // Write the trimmed array back so IG's internal state stays in sync.
                 @try { [tabBarController setValue:buttons forKey:@"_buttons"]; } @catch (__unused NSException *e) {}
-                theta_relayoutTabBarAfterButtonRemoval((UIView *)tabBar, (UIViewController *)tabBarController);
+                zeus_relayoutTabBarAfterButtonRemoval((UIView *)tabBar, (UIViewController *)tabBarController);
             }
         }
 
         id swipeCoordinator = [tabBarController valueForKey:@"_swipeCoordinator"];
         if (swipeCoordinator) {
             if (messengerMode) {
-                theta_trimSurfacesToMessengerOnly(swipeCoordinator, &mutatedSurfaceLists);
+                zeus_trimSurfacesToMessengerOnly(swipeCoordinator, &mutatedSurfaceLists);
             } else {
                 id surfacesObj = nil;
                 @try {
@@ -556,7 +556,7 @@ static void THApplyTabHidingNow(id tabBarController) {
                         id surface = [surfaces objectAtIndex:(NSUInteger)i];
                         NSString *intent = nil;
                         @try { intent = [surface performSelector:@selector(tabStringFromSurfaceIntent)]; } @catch (__unused NSException *e) {}
-                        if (theta_shouldRemoveSurfaceIntent(intent)) {
+                        if (zeus_shouldRemoveSurfaceIntent(intent)) {
                             [surfaces removeObjectAtIndex:(NSUInteger)i];
                         }
                     }
@@ -572,7 +572,7 @@ static void THApplyTabHidingNow(id tabBarController) {
         }
 
         if (messengerMode) {
-            theta_trimTabBarSurfacesToMessengerOnly(tabBarController, &mutatedSurfaceLists);
+            zeus_trimTabBarSurfacesToMessengerOnly(tabBarController, &mutatedSurfaceLists);
         } else {
             id tabBarSurfacesObj = [tabBarController valueForKey:@"_tabBarSurfaces"];
             if ([tabBarSurfacesObj isKindOfClass:[NSArray class]] && [(NSArray *)tabBarSurfacesObj count] > 0) {
@@ -582,7 +582,7 @@ static void THApplyTabHidingNow(id tabBarController) {
                     id surface = [mutableTabBarSurfaces objectAtIndex:(NSUInteger)i];
                     NSString *intent = nil;
                     @try { intent = [surface performSelector:@selector(tabStringFromSurfaceIntent)]; } @catch (__unused NSException *e) {}
-                    if (theta_shouldRemoveSurfaceIntent(intent)) {
+                    if (zeus_shouldRemoveSurfaceIntent(intent)) {
                         [mutableTabBarSurfaces removeObjectAtIndex:(NSUInteger)i];
                     }
                 }
@@ -597,7 +597,7 @@ static void THApplyTabHidingNow(id tabBarController) {
         }
 
         if (removedTabButtons || mutatedSurfaceLists) {
-            theta_syncSwipeCoordinatorAndTabSelection(tabBarController);
+            zeus_syncSwipeCoordinatorAndTabSelection(tabBarController);
         }
     } @catch (NSException *exception) {
         NSLog(@"HideTabs: %@", exception);
@@ -607,10 +607,10 @@ static void THApplyTabHidingNow(id tabBarController) {
 static void hook_hideTabs(id self, SEL _cmd, BOOL animated) {
     // Let Instagram finish setting up the tab bar first
     orig_hideTabs(self, _cmd, animated);
-    THApplyTabHidingNow(self);
+    ZUApplyTabHidingNow(self);
 }
 
-void THRegisterHideTabsHooks(void) {
+void ZURegisterHideTabsHooks(void) {
     Class tbCls = objc_getClass("IGTabBarController");
     if (!tbCls) return;
 
@@ -620,9 +620,9 @@ void THRegisterHideTabsHooks(void) {
     // tab bar. Apply immediately so the user sees the correct state on first launch.
     // Use dispatch_after to let IG finish any in-flight layout before we modify it.
     void (^applyNow)(void) = ^{
-        if (!ENABLED(@"Messenger Mode") && !theta_anyTabHideEnabled()) return;
-        UIViewController *tbc = theta_findIGTabBarController();
-        if (tbc) THApplyTabHidingNow(tbc);
+        if (!ENABLED(@"Messenger Mode") && !zeus_anyTabHideEnabled()) return;
+        UIViewController *tbc = zeus_findIGTabBarController();
+        if (tbc) ZUApplyTabHidingNow(tbc);
     };
     // First attempt: next run-loop turn
     dispatch_async(dispatch_get_main_queue(), applyNow);

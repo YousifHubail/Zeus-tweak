@@ -24,22 +24,22 @@ static void hook_hideCreateGroupButton3(id self, SEL _cmd) {
     [self removeFromSuperview];
 }
 
-void THRegisterHideCreateGroupButtonHooks(void) {
+void ZURegisterHideCreateGroupButtonHooks(void) {
     // Both mangled names below previously had the wrong length prefix (27/39 instead
     // of the correct 29/38), so neither ever resolved on 441 or 444; fixed here.
-    Class bottomButtons = ThetaFirstClass(@[
+    Class bottomButtons = ZeusFirstClass(@[
         @"_TtC12IGShareSheet29IGSharesheetBottomButtonsView",
         @"IGShareSheet.IGSharesheetBottomButtonsView"
     ]);
     NullHookMessageIfPresent(bottomButtons, @selector(secondaryButtonTappedWithButton:), (void *)hook_hideCreateGroupButton, &orig_hideCreateGroupButton);
 
-    Class bottomContainer = ThetaFirstClass(@[
+    Class bottomContainer = ZeusFirstClass(@[
         @"_TtC12IGShareSheet38IGShareSheetBottomButtonsViewContainer",
         @"IGShareSheet.IGShareSheetBottomButtonsViewContainer"
     ]);
     NullHookMessageIfPresent(bottomContainer, @selector(setSecondaryButtonEnabled:animated:), (void *)hook_hideCreateGroupButton2, &orig_hideCreateGroupButton2);
 
-    Class facepile = ThetaFirstClass(@[
+    Class facepile = ZeusFirstClass(@[
         @"_TtC12IGShareSheet45IGShareSheetCreateOrSendToGroupFacepileButton",
         @"IGShareSheet.IGShareSheetCreateOrSendToGroupFacepileButton"
     ]);

@@ -18,7 +18,7 @@ static void hook_applicationWillEnterForeground(id self, SEL _cmd, id arg1) {
     isAuthenticationShowed = FALSE;
 }
 
-void THRegisterLockInstagramHooks(void) {
+void ZURegisterLockInstagramHooks(void) {
     NullHookMessageEx(objc_getClass("IGInstagramAppDelegate"), @selector(applicationDidBecomeActive:), (void *)hook_applicationDidBecomeActive, &orig_applicationDidBecomeActive);
     NullHookMessageEx(objc_getClass("IGInstagramAppDelegate"), @selector(applicationWillEnterForeground:), (void *)hook_applicationWillEnterForeground, &orig_applicationWillEnterForeground);
 }

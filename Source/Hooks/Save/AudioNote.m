@@ -1,5 +1,5 @@
 #import <objc/runtime.h>
-#import "Include/ThetaDashManifest.h"
+#import "Include/ZeusDashManifest.h"
 
 // UIView category for finding nearest view controller
 @interface UIView (FindNearestViewController)
@@ -266,48 +266,48 @@ static void hook_saveNoteAudio(id self, SEL _cmd) {
                                                     }},
                                                     @{ @"title": @"Cancel", @"handler": ^{ /* do nothing */ }}
                                                 ];
-                                                [ThetaHelper showCustomAlertWithActions:@"Save Audio Note" 
+                                                [ZeusHelper showCustomAlertWithActions:@"Save Audio Note" 
                                                                             description:@"Would you like to save this audio note to your device?"
                                                                                 actions:actions];
                                             } else {
                                                 NSLog(@"No audio URL found in manifest");
                                                 NSArray *actions = @[@{ @"title": @"OK", @"handler": ^{ /* do nothing */ }}];
-                                                [ThetaHelper showCustomAlertWithActions:@"Audio Note" 
+                                                [ZeusHelper showCustomAlertWithActions:@"Audio Note" 
                                                                             description:@"No audio URL found in manifest"
                                                                                 actions:actions];
                                             }
                                         } else {
                                             NSLog(@"No dash manifest found");
                                             NSArray *actions = @[@{ @"title": @"OK", @"handler": ^{ /* do nothing */ }}];
-                                            [ThetaHelper showCustomAlertWithActions:@"Audio Note" 
+                                            [ZeusHelper showCustomAlertWithActions:@"Audio Note" 
                                                                         description:@"No dash manifest found"
                                                                             actions:actions];
                                         }
                                     } else {
                                         NSLog(@"No music assets found");
                                         NSArray *actions = @[@{ @"title": @"OK", @"handler": ^{ /* do nothing */ }}];
-                                        [ThetaHelper showCustomAlertWithActions:@"Audio Note" 
+                                        [ZeusHelper showCustomAlertWithActions:@"Audio Note" 
                                                                     description:@"No music assets found"
                                                                         actions:actions];
                                     }
                                 } else {
                                     NSLog(@"No music info value found");
                                     NSArray *actions = @[@{ @"title": @"OK", @"handler": ^{ /* do nothing */ }}];
-                                    [ThetaHelper showCustomAlertWithActions:@"Audio Note" 
+                                    [ZeusHelper showCustomAlertWithActions:@"Audio Note" 
                                                                 description:@"No music info value found"
                                                                     actions:actions];
                                 }
                             } else {
                                 NSLog(@"No music info ivar found");
                                 NSArray *actions = @[@{ @"title": @"OK", @"handler": ^{ /* do nothing */ }}];
-                                [ThetaHelper showCustomAlertWithActions:@"Audio Note" 
+                                [ZeusHelper showCustomAlertWithActions:@"Audio Note" 
                                                             description:@"No music info ivar found"
                                                                 actions:actions];
                             }
                         } @catch (NSException *exception) {
                             NSLog(@"Exception in long press handler: %@", exception.reason);
                             NSArray *actions = @[@{ @"title": @"OK", @"handler": ^{ /* do nothing */ }}];
-                            [ThetaHelper showCustomAlertWithActions:@"Audio Note Error" 
+                            [ZeusHelper showCustomAlertWithActions:@"Audio Note Error" 
                                                         description:[NSString stringWithFormat:@"Exception: %@", exception.reason]
                                                             actions:actions];
                         }
@@ -320,7 +320,7 @@ static void hook_saveNoteAudio(id self, SEL _cmd) {
     }
 }
 
-void THRegisterSaveAudioNotesHooks(void) {
+void ZURegisterSaveAudioNotesHooks(void) {
     SEL layout = @selector(layoutSubviews);
     NSArray<NSString *> *classes = @[
         @"IGMusicStickerAudioIndicatorView",

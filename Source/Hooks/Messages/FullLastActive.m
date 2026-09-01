@@ -1,8 +1,8 @@
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
-static NSDateFormatter *THDMDateFormatter(void) {
+static NSDateFormatter *ZUDMDateFormatter(void) {
     static NSDateFormatter *df = nil;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -13,7 +13,7 @@ static NSDateFormatter *THDMDateFormatter(void) {
 }
 
 // Replace "Active Xm/h ago" with a full formatted timestamp
-static void THUpdateSubtitleLabel(UIView *titleView) {
+static void ZUUpdateSubtitleLabel(UIView *titleView) {
     if (!ENABLED(@"Full Last Active Date")) return;
 
     Ivar subIvar = class_getInstanceVariable([titleView class], "_subtitleLabel");
@@ -62,7 +62,7 @@ static void THUpdateSubtitleLabel(UIView *titleView) {
 
     if (!activeDate) return;
 
-    NSString *formatted = [THDMDateFormatter() stringFromDate:activeDate];
+    NSString *formatted = [ZUDMDateFormatter() stringFromDate:activeDate];
     if (!formatted.length) return;
 
     label.text = formatted;
@@ -82,16 +82,16 @@ static void THUpdateSubtitleLabel(UIView *titleView) {
 static void (*orig_setTitleViewModel)(id, SEL, id);
 static void hook_setTitleViewModel(id self, SEL _cmd, id vm) {
     orig_setTitleViewModel(self, _cmd, vm);
-    THUpdateSubtitleLabel(self);
+    ZUUpdateSubtitleLabel(self);
 }
 
 static void (*orig_animCoordDidUpdate)(id, SEL, id);
 static void hook_animCoordDidUpdate(id self, SEL _cmd, id coordinator) {
     orig_animCoordDidUpdate(self, _cmd, coordinator);
-    THUpdateSubtitleLabel(self);
+    ZUUpdateSubtitleLabel(self);
 }
 
-void THRegisterFullLastActiveHooks(void) {
+void ZURegisterFullLastActiveHooks(void) {
     Class cls = objc_getClass("IGDirectLeftAlignedTitleView");
     NullHookMessageEx(cls, @selector(setTitleViewModel:), (void *)hook_setTitleViewModel, &orig_setTitleViewModel);
     NullHookMessageEx(cls, @selector(animationCoordinatorDidUpdate:), (void *)hook_animCoordDidUpdate, &orig_animCoordDidUpdate);

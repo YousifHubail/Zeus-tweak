@@ -21,11 +21,11 @@ static void loadKeychainAccessGroup() {
 			NSDictionary* resultDict = (__bridge id)result;
 			keychainAccessGroup = resultDict[(__bridge id)kSecAttrAccessGroup];
 			CFRelease(result);
-			fprintf(stderr, "[Theta] sideload keychain access group: %s\n",
+			fprintf(stderr, "[Zeus] sideload keychain access group: %s\n",
 			        keychainAccessGroup.UTF8String ?: "(null)");
 			fflush(stderr);
 		} else {
-			fprintf(stderr, "[Theta] Failed to get keychain access group: %d\n", (int)ret);
+			fprintf(stderr, "[Zeus] Failed to get keychain access group: %d\n", (int)ret);
 			fflush(stderr);
 		}
 	} @catch (NSException *exception) {
@@ -68,7 +68,7 @@ static NSURL *hook_NSFileManager(id self, SEL _cmd, NSString *groupIdentifier) {
 }
 
 // Prevent EXC_BREAKPOINT in StorageKit when createMobileConfigDirectoryIfNeeded runs on
-// sideload. Must NOT call ThetaHelper/createDirectoryAtURL — that re-enters this hook
+// sideload. Must NOT call ZeusHelper/createDirectoryAtURL — that re-enters this hook
 // (createDirectoryAtURL → createDirectoryAtPath) and stack-overflows.
 static BOOL hook_createDirectoryAtPath(id self, SEL _cmd, NSString *path, BOOL createIntermediates, NSDictionary *attributes, NSError **error) {
 	if (!orig_createDirectoryAtPath) {

@@ -1,5 +1,5 @@
-#ifndef THETA_ROOTLESS_H
-#define THETA_ROOTLESS_H
+#ifndef ZEUS_ROOTLESS_H
+#define ZEUS_ROOTLESS_H
 
 #import <Foundation/Foundation.h>
 

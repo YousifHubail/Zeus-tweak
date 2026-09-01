@@ -1,18 +1,18 @@
 #import <objc/runtime.h>
 
-extern void THStorySeenReceiptNetworkGuardEnter(void);
-extern void THStorySeenReceiptNetworkGuardEnterWithContext(id fullscreenSectionController, id storyViewer);
-extern void THStorySeenReceiptNetworkGuardResealAfterMark(id fullscreenSectionController, id storyViewer);
-extern void THStorySeenReceiptNetworkGuardLeave(void);
+extern void ZUStorySeenReceiptNetworkGuardEnter(void);
+extern void ZUStorySeenReceiptNetworkGuardEnterWithContext(id fullscreenSectionController, id storyViewer);
+extern void ZUStorySeenReceiptNetworkGuardResealAfterMark(id fullscreenSectionController, id storyViewer);
+extern void ZUStorySeenReceiptNetworkGuardLeave(void);
 
 @class IGVideo;
 static void downloadHDVideo(IGVideo *inputVideo);
-static UIImage *thetaColoredSystemSymbol(NSString *name, UIColor *color);
+static UIImage *zeusColoredSystemSymbol(NSString *name, UIColor *color);
 
-static const NSInteger kThetaStoryButtonTag = 77001;
+static const NSInteger kZeusStoryButtonTag = 77001;
 
-static char kThetaBtnTouchUpInsideBlockKey;
-static char kThetaBtnTouchDownBlockKey;
+static char kZeusBtnTouchUpInsideBlockKey;
+static char kZeusBtnTouchDownBlockKey;
 static void *UIGestureBlockKey = &UIGestureBlockKey;
 
 @interface UIButton (BlockTarget)
@@ -23,23 +23,23 @@ static void *UIGestureBlockKey = &UIGestureBlockKey;
 - (void)handleControlEvent:(UIControlEvents)event withBlock:(void (^)(id sender))block {
     // Separate keys so TouchDown + TouchUpInside don't clobber each other.
     if (event == UIControlEventTouchDown) {
-        objc_setAssociatedObject(self, &kThetaBtnTouchDownBlockKey, block, OBJC_ASSOCIATION_COPY_NONATOMIC);
-        [self addTarget:self action:@selector(theta_fireTouchDownBlock:) forControlEvents:UIControlEventTouchDown];
+        objc_setAssociatedObject(self, &kZeusBtnTouchDownBlockKey, block, OBJC_ASSOCIATION_COPY_NONATOMIC);
+        [self addTarget:self action:@selector(zeus_fireTouchDownBlock:) forControlEvents:UIControlEventTouchDown];
         return;
     }
-    objc_setAssociatedObject(self, &kThetaBtnTouchUpInsideBlockKey, block, OBJC_ASSOCIATION_COPY_NONATOMIC);
-    [self addTarget:self action:@selector(theta_fireTouchUpInsideBlock:) forControlEvents:event];
+    objc_setAssociatedObject(self, &kZeusBtnTouchUpInsideBlockKey, block, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    [self addTarget:self action:@selector(zeus_fireTouchUpInsideBlock:) forControlEvents:event];
 }
 
-- (void)theta_fireTouchUpInsideBlock:(id)sender {
-    void (^block)(id) = objc_getAssociatedObject(self, &kThetaBtnTouchUpInsideBlockKey);
+- (void)zeus_fireTouchUpInsideBlock:(id)sender {
+    void (^block)(id) = objc_getAssociatedObject(self, &kZeusBtnTouchUpInsideBlockKey);
     if (block) {
         @try { block(sender ?: self); } @catch (__unused NSException *e) {}
     }
 }
 
-- (void)theta_fireTouchDownBlock:(id)sender {
-    void (^block)(id) = objc_getAssociatedObject(self, &kThetaBtnTouchDownBlockKey);
+- (void)zeus_fireTouchDownBlock:(id)sender {
+    void (^block)(id) = objc_getAssociatedObject(self, &kZeusBtnTouchDownBlockKey);
     if (block) {
         @try { block(sender ?: self); } @catch (__unused NSException *e) {}
     }
@@ -53,10 +53,10 @@ static void *UIGestureBlockKey = &UIGestureBlockKey;
 @implementation UIGestureRecognizer (BlockTarget)
 - (void)addActionBlock:(void (^)(UIGestureRecognizer *sender))block {
     objc_setAssociatedObject(self, UIGestureBlockKey, block, OBJC_ASSOCIATION_COPY_NONATOMIC);
-    [self addTarget:self action:@selector(theta_gestureCallActionBlock:)];
+    [self addTarget:self action:@selector(zeus_gestureCallActionBlock:)];
 }
 
-- (void)theta_gestureCallActionBlock:(UIGestureRecognizer *)sender {
+- (void)zeus_gestureCallActionBlock:(UIGestureRecognizer *)sender {
     void (^block)(UIGestureRecognizer *) = objc_getAssociatedObject(self, UIGestureBlockKey);
     if (block) {
         @try { block(sender); } @catch (__unused NSException *e) {}
@@ -64,7 +64,7 @@ static void *UIGestureBlockKey = &UIGestureBlockKey;
 }
 @end
 
-static void thetaStoryAddTap(UIButton *button, void (^handler)(void)) {
+static void zeusStoryAddTap(UIButton *button, void (^handler)(void)) {
     if (!button || !handler) return;
     void (^copied)(void) = [handler copy];
     [button addAction:[UIAction actionWithHandler:^(__kindof UIAction *action) {
@@ -72,7 +72,7 @@ static void thetaStoryAddTap(UIButton *button, void (^handler)(void)) {
     }] forControlEvents:UIControlEventTouchUpInside];
 }
 
-static void thetaStorySkipIfEnabled(id firstDelegate) {
+static void zeusStorySkipIfEnabled(id firstDelegate) {
     if (!ENABLED(@"Skip On Seen") || !firstDelegate) return;
     if (![firstDelegate respondsToSelector:@selector(fullscreenOverlayDidTapNextStoryButton:)]) return;
     @try {
@@ -80,7 +80,7 @@ static void thetaStorySkipIfEnabled(id firstDelegate) {
     } @catch (__unused NSException *e) {}
 }
 
-static id thetaStorySectionControllerFromCell(IGStoryFullscreenCell *cell) {
+static id zeusStorySectionControllerFromCell(IGStoryFullscreenCell *cell) {
     if (!cell) return nil;
     id section = nil;
     @try {
@@ -89,18 +89,18 @@ static id thetaStorySectionControllerFromCell(IGStoryFullscreenCell *cell) {
         }
     } @catch (__unused NSException *e) {}
     if (!section) {
-        id container = ThetaValueForKey(cell, @"containerView");
-        section = ThetaValueForKey(container, @"delegate");
+        id container = ZeusValueForKey(cell, @"containerView");
+        section = ZeusValueForKey(container, @"delegate");
     }
     return section;
 }
 
-static id thetaStoryViewerFromCell(IGStoryFullscreenCell *cell) {
+static id zeusStoryViewerFromCell(IGStoryFullscreenCell *cell) {
     Class viewerCls = NSClassFromString(@"IGStoryViewerViewController");
     if (!viewerCls) return nil;
 
-    id section = thetaStorySectionControllerFromCell(cell);
-    id candidate = ThetaValueForKey(section, @"delegate");
+    id section = zeusStorySectionControllerFromCell(cell);
+    id candidate = ZeusValueForKey(section, @"delegate");
     if ([candidate isKindOfClass:viewerCls]) return candidate;
 
     // Responder / superview walk — section.delegate is not always the viewer on newer IG.
@@ -115,13 +115,13 @@ static id thetaStoryViewerFromCell(IGStoryFullscreenCell *cell) {
     }
 
     for (NSString *key in @[ @"storyViewer", @"viewController", @"parentViewController", @"delegate" ]) {
-        id fromKey = ThetaValueForKey(section, key);
+        id fromKey = ZeusValueForKey(section, key);
         if ([fromKey isKindOfClass:viewerCls]) return fromKey;
     }
 
     // Presented / top VC fallback
     @try {
-        UIViewController *top = [ThetaHelper topViewController];
+        UIViewController *top = [ZeusHelper topViewController];
         UIViewController *p = top;
         while (p) {
             if ([p isKindOfClass:viewerCls]) return p;
@@ -137,33 +137,33 @@ static id thetaStoryViewerFromCell(IGStoryFullscreenCell *cell) {
     return nil; // never return a non-viewer object
 }
 
-static BOOL thetaStoryMarkItemAsSeen(IGStoryFullscreenCell *cell, id item) {
+static BOOL zeusStoryMarkItemAsSeen(IGStoryFullscreenCell *cell, id item) {
     if (!cell || !item) return NO;
-    id section = thetaStorySectionControllerFromCell(cell);
-    id viewer = thetaStoryViewerFromCell(cell);
+    id section = zeusStorySectionControllerFromCell(cell);
+    id viewer = zeusStoryViewerFromCell(cell);
     Class viewerCls = NSClassFromString(@"IGStoryViewerViewController");
     SEL sel = @selector(fullscreenSectionController:didMarkItemAsSeen:);
     if (!viewer || (viewerCls && ![viewer isKindOfClass:viewerCls]) || ![viewer respondsToSelector:sel]) {
-        NSLog(@"[Theta] StoryGhost: no viewer for didMarkItemAsSeen (viewer=%@)", NSStringFromClass([viewer class]));
+        NSLog(@"[Zeus] StoryGhost: no viewer for didMarkItemAsSeen (viewer=%@)", NSStringFromClass([viewer class]));
         return NO;
     }
     @try {
         ((void (*)(id, SEL, id, id))objc_msgSend)(viewer, sel, section, item);
         return YES;
     } @catch (NSException *e) {
-        NSLog(@"[Theta] StoryGhost: didMarkItemAsSeen threw %@", e);
+        NSLog(@"[Zeus] StoryGhost: didMarkItemAsSeen threw %@", e);
         return NO;
     }
 }
 
-static NSURL *thetaStoryURLFromCandidate(id cand) {
+static NSURL *zeusStoryURLFromCandidate(id cand) {
     if (!cand) return nil;
     if ([cand isKindOfClass:[NSURL class]]) return cand;
     if ([cand isKindOfClass:[NSString class]]) {
         NSURL *u = [NSURL URLWithString:(NSString *)cand];
         return u.scheme.length ? u : nil;
     }
-    id url = ThetaValueForKey(cand, @"url");
+    id url = ZeusValueForKey(cand, @"url");
     if ([url isKindOfClass:[NSURL class]]) return url;
     if ([url isKindOfClass:[NSString class]]) {
         NSURL *u = [NSURL URLWithString:(NSString *)url];
@@ -172,22 +172,22 @@ static NSURL *thetaStoryURLFromCandidate(id cand) {
     return nil;
 }
 
-static NSURL *thetaStoryBestImageURLFromMedia(id media) {
+static NSURL *zeusStoryBestImageURLFromMedia(id media) {
     if (!media) return nil;
     // IG 441+: IGMedia exposes hintableImageURLs instead of isPhotoMedia/photo.
     if ([media respondsToSelector:@selector(hintableImageURLs)]) {
         id urls = nil;
         @try { urls = [media performSelector:@selector(hintableImageURLs)]; } @catch (__unused NSException *e) {}
         if ([urls isKindOfClass:[NSArray class]] && [urls count] > 0) {
-            NSURL *u = thetaStoryURLFromCandidate([urls lastObject]);
+            NSURL *u = zeusStoryURLFromCandidate([urls lastObject]);
             if (u) return u;
             for (id o in urls) {
-                u = thetaStoryURLFromCandidate(o);
+                u = zeusStoryURLFromCandidate(o);
                 if (u) return u;
             }
         } else if ([urls isKindOfClass:[NSSet class]]) {
             for (id o in (NSSet *)urls) {
-                NSURL *u = thetaStoryURLFromCandidate(o);
+                NSURL *u = zeusStoryURLFromCandidate(o);
                 if (u) return u;
             }
         }
@@ -197,38 +197,38 @@ static NSURL *thetaStoryBestImageURLFromMedia(id media) {
     if ([media respondsToSelector:@selector(photo)]) {
         @try { photo = [media performSelector:@selector(photo)]; } @catch (__unused NSException *e) {}
     }
-    if (!photo) photo = ThetaValueForKey(media, @"photo");
-    if (!photo) photo = ThetaValueForKey(media, @"rawPhoto");
+    if (!photo) photo = ZeusValueForKey(media, @"photo");
+    if (!photo) photo = ZeusValueForKey(media, @"rawPhoto");
 
-    NSArray *versions = ThetaValueForKey(photo, @"_originalImageVersions");
-    if (![versions isKindOfClass:[NSArray class]]) versions = ThetaValueForKey(photo, @"imageVersions");
-    if (![versions isKindOfClass:[NSArray class]]) versions = ThetaValueForKey(media, @"imageVersions");
+    NSArray *versions = ZeusValueForKey(photo, @"_originalImageVersions");
+    if (![versions isKindOfClass:[NSArray class]]) versions = ZeusValueForKey(photo, @"imageVersions");
+    if (![versions isKindOfClass:[NSArray class]]) versions = ZeusValueForKey(media, @"imageVersions");
     if ([versions isKindOfClass:[NSArray class]] && versions.count > 0) {
-        NSURL *u = thetaStoryURLFromCandidate([versions lastObject]);
+        NSURL *u = zeusStoryURLFromCandidate([versions lastObject]);
         if (u) return u;
     }
     return nil;
 }
 
-static id thetaStoryVideoObjectFromMedia(id media) {
+static id zeusStoryVideoObjectFromMedia(id media) {
     if (!media) return nil;
     id video = nil;
     if ([media respondsToSelector:@selector(video)]) {
         @try { video = [media performSelector:@selector(video)]; } @catch (__unused NSException *e) {}
     }
-    if (!video) video = ThetaValueForKey(media, @"video");
-    if (!video) video = ThetaValueForKey(media, @"rawVideo");
+    if (!video) video = ZeusValueForKey(media, @"video");
+    if (!video) video = ZeusValueForKey(media, @"rawVideo");
     return video;
 }
 
-static void thetaStorySaveURL(NSURL *url, BOOL isVideoHint) {
+static void zeusStorySaveURL(NSURL *url, BOOL isVideoHint) {
     if (![url isKindOfClass:[NSURL class]]) return;
     NSURLSession *session = [NSURLSession sharedSession];
     NSURLSessionDownloadTask *downloadTask = [session downloadTaskWithURL:url completionHandler:^(NSURL * _Nullable location, NSURLResponse * _Nullable response, NSError * _Nullable error) {
         if (error || !location) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (ENABLED(@"Show Banners")) {
-                    [ThetaHelper showToastWithTitle:@"Save failed" subtitle:error.localizedDescription ?: @"Download error" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Save failed" subtitle:error.localizedDescription ?: @"Download error" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
                 }
             });
             return;
@@ -254,9 +254,9 @@ static void thetaStorySaveURL(NSURL *url, BOOL isVideoHint) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
                         if (success) {
-                            [ThetaHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                            [ZeusHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                         } else {
-                            [ThetaHelper showToastWithTitle:@"Save failed" subtitle:err.localizedDescription ?: @"Photos error" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                            [ZeusHelper showToastWithTitle:@"Save failed" subtitle:err.localizedDescription ?: @"Photos error" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
                         }
                     }
                 });
@@ -271,18 +271,18 @@ static void thetaStorySaveURL(NSURL *url, BOOL isVideoHint) {
             [[NSFileManager defaultManager] moveItemAtPath:permanentFilePath toPath:destPath error:nil];
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (ENABLED(@"Show Banners")) {
-                    [ThetaHelper showToastWithTitle:@"Saved!" subtitle:@"Saved to Documents." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Saved!" subtitle:@"Saved to Documents." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:nil];
                 }
             });
         }
     }];
     [downloadTask resume];
     if (ENABLED(@"Show Banners")) {
-        [ThetaHelper showToastWithTitle:@"Saving…" subtitle:@"Downloading story media" icon:[UIImage systemImageNamed:@"arrow.down.circle"] autoHide:2 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Saving…" subtitle:@"Downloading story media" icon:[UIImage systemImageNamed:@"arrow.down.circle"] autoHide:2 openURL:nil];
     }
 }
 
-static NSString *thetaStoryOwnerKey(id owner) {
+static NSString *zeusStoryOwnerKey(id owner) {
     if (!owner) return nil;
     @try {
         if ([owner respondsToSelector:@selector(name)]) {
@@ -290,17 +290,17 @@ static NSString *thetaStoryOwnerKey(id owner) {
             if ([n isKindOfClass:[NSString class]] && [(NSString *)n length]) return [(NSString *)n lowercaseString];
         }
     } @catch (__unused NSException *e) {}
-    id n = ThetaValueForKey(owner, @"username");
-    if (![n isKindOfClass:[NSString class]] || ![n length]) n = ThetaValueForKey(owner, @"pk");
+    id n = ZeusValueForKey(owner, @"username");
+    if (![n isKindOfClass:[NSString class]] || ![n length]) n = ZeusValueForKey(owner, @"pk");
     if ([n isKindOfClass:[NSString class]] || [n isKindOfClass:[NSNumber class]]) {
         return [[[n description] lowercaseString] copy];
     }
     return [NSString stringWithFormat:@"%p", owner];
 }
 static void downloadButtonTapped(IGStoryFullscreenCell *self) {
-	[ThetaHelper performHapticFeedbackIfEnabled];
+	[ZeusHelper performHapticFeedbackIfEnabled];
 
-	id firstDelegate = thetaStorySectionControllerFromCell(self);
+	id firstDelegate = zeusStorySectionControllerFromCell(self);
 	id currentMedia = nil;
 	@try {
 		if ([firstDelegate respondsToSelector:@selector(currentStoryItem)]) {
@@ -308,7 +308,7 @@ static void downloadButtonTapped(IGStoryFullscreenCell *self) {
 		}
 	} @catch (__unused NSException *e) {}
 	if (!currentMedia) {
-		id viewer = thetaStoryViewerFromCell(self);
+		id viewer = zeusStoryViewerFromCell(self);
 		@try {
 			if ([viewer respondsToSelector:@selector(currentStoryItem)]) {
 				currentMedia = [viewer performSelector:@selector(currentStoryItem)];
@@ -317,27 +317,27 @@ static void downloadButtonTapped(IGStoryFullscreenCell *self) {
 	}
 	if (!currentMedia) {
 		if (ENABLED(@"Show Banners")) {
-			[ThetaHelper showToastWithTitle:@"Save failed" subtitle:@"Couldn't find the current story item." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+			[ZeusHelper showToastWithTitle:@"Save failed" subtitle:@"Couldn't find the current story item." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
 		}
 		return;
 	}
 
 	// Prefer image URLs (works for photo stories on IG 441+ without isPhotoMedia).
-	NSURL *imageURL = thetaStoryBestImageURLFromMedia(currentMedia);
-	id video = thetaStoryVideoObjectFromMedia(currentMedia);
+	NSURL *imageURL = zeusStoryBestImageURLFromMedia(currentMedia);
+	id video = zeusStoryVideoObjectFromMedia(currentMedia);
 
 	// Progressive / dash URLs directly on the story item.
 	NSURL *directVideoURL = nil;
 	if ([currentMedia respondsToSelector:@selector(allVideoURLs)]) {
 		id set = nil;
 		@try { set = [currentMedia performSelector:@selector(allVideoURLs)]; } @catch (__unused NSException *e) {}
-		if ([set isKindOfClass:[NSSet class]]) directVideoURL = thetaStoryURLFromCandidate([(NSSet *)set anyObject]);
-		else if ([set isKindOfClass:[NSArray class]] && [set count]) directVideoURL = thetaStoryURLFromCandidate([set lastObject]);
+		if ([set isKindOfClass:[NSSet class]]) directVideoURL = zeusStoryURLFromCandidate([(NSSet *)set anyObject]);
+		else if ([set isKindOfClass:[NSArray class]] && [set count]) directVideoURL = zeusStoryURLFromCandidate([set lastObject]);
 	}
 	if (!directVideoURL && video && [video respondsToSelector:@selector(allVideoURLs)]) {
 		id set = nil;
 		@try { set = [video performSelector:@selector(allVideoURLs)]; } @catch (__unused NSException *e) {}
-		if ([set isKindOfClass:[NSSet class]]) directVideoURL = thetaStoryURLFromCandidate([(NSSet *)set anyObject]);
+		if ([set isKindOfClass:[NSSet class]]) directVideoURL = zeusStoryURLFromCandidate([(NSSet *)set anyObject]);
 	}
 
 	NSInteger mediaType = -1;
@@ -353,7 +353,7 @@ static void downloadButtonTapped(IGStoryFullscreenCell *self) {
 	BOOL looksPhoto = (mediaType == 1) || (imageURL != nil && !looksVideo);
 
 	if (looksPhoto && imageURL) {
-		thetaStorySaveURL(imageURL, NO);
+		zeusStorySaveURL(imageURL, NO);
 		return;
 	}
 
@@ -367,18 +367,18 @@ static void downloadButtonTapped(IGStoryFullscreenCell *self) {
 	}
 
 	if (directVideoURL) {
-		thetaStorySaveURL(directVideoURL, YES);
+		zeusStorySaveURL(directVideoURL, YES);
 		return;
 	}
 
 	// Last resort: image URL even if type detection was ambiguous.
 	if (imageURL) {
-		thetaStorySaveURL(imageURL, NO);
+		zeusStorySaveURL(imageURL, NO);
 		return;
 	}
 
 	if (ENABLED(@"Show Banners")) {
-		[ThetaHelper showToastWithTitle:@"Save failed" subtitle:@"No downloadable photo/video URL on this story." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+		[ZeusHelper showToastWithTitle:@"Save failed" subtitle:@"No downloadable photo/video URL on this story." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
 	}
 }
 
@@ -420,7 +420,7 @@ static void downloadAllMedia(IGStoryFullscreenCell *self) {
 	NSString *toastTitle = items.count > 1 ? @"Fetching media..." : @"Saving media...";
 	if (ENABLED(@"Show Banners")) {
 		UIImage *fetchingImage = [UIImage systemImageNamed:@"arrow.clockwise"];
-		[ThetaHelper showToastWithTitle:toastTitle subtitle:@"This will only take a second." icon:fetchingImage autoHide:4 openURL:nil];
+		[ZeusHelper showToastWithTitle:toastTitle subtitle:@"This will only take a second." icon:fetchingImage autoHide:4 openURL:nil];
 	}
 	NSURL *url = nil;
 	UIImage *preview = nil;
@@ -495,7 +495,7 @@ static void downloadAllMedia(IGStoryFullscreenCell *self) {
 					dispatch_async(dispatch_get_main_queue(), ^{
 						MediaSelectionViewController *mediaSelectionVC = [[MediaSelectionViewController alloc] initWithMediaItems:mediaItems hdVideos:igvideos withCount:mediaItems.count + igvideos.count];
 						UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
-						[[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+						[[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
 					});
 				}];
 				return;
@@ -509,7 +509,7 @@ static void downloadAllMedia(IGStoryFullscreenCell *self) {
 					MediaSelectionViewController *mediaSelectionVC = [[MediaSelectionViewController alloc] init];
 					[mediaSelectionVC downloadMediaToTemp:url completion:^(NSString *filePath, NSString *fileExtension){
 						if (ENABLED(@"Show Banners")) {
-                            [ThetaHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                            [ZeusHelper showToastWithTitle:@"Saved to camera roll!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:4 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                         }
 					}];
 				}
@@ -519,22 +519,22 @@ static void downloadAllMedia(IGStoryFullscreenCell *self) {
 			if (mediaItems.count > 1) {
 				MediaSelectionViewController *mediaSelectionVC = [[MediaSelectionViewController alloc] initWithMediaItems:mediaItems withCount:mediaItems.count];
 				UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:mediaSelectionVC];
-											[[ThetaHelper topViewController] presentViewController:navController animated:YES completion:nil];
+											[[ZeusHelper topViewController] presentViewController:navController animated:YES completion:nil];
 			}
 		});
 	}
 }
 
 /// Mark as seen on this device only (`Seen Receipts Stay Local`). Tap = current item; long-press = every item in this reel.
-static void thetaLocalSeenResolveDelegates(IGStoryFullscreenCell *self, id *outFirst, id *outSecond) {
-    id firstDelegate = thetaStorySectionControllerFromCell(self);
-    id secondDelegate = thetaStoryViewerFromCell(self);
+static void zeusLocalSeenResolveDelegates(IGStoryFullscreenCell *self, id *outFirst, id *outSecond) {
+    id firstDelegate = zeusStorySectionControllerFromCell(self);
+    id secondDelegate = zeusStoryViewerFromCell(self);
     if (outFirst) *outFirst = firstDelegate;
     if (outSecond) *outSecond = secondDelegate;
 }
 
 /// Resolves NSArray of objects acceptable for `-fullscreenSectionController:didMarkItemAsSeen:` (often `IGStoryItem`, not bare `IGMedia`).
-static NSArray *theta_storyResolvedItemsForMarkAll(id firstDelegate, id secondDelegate) {
+static NSArray *zeus_storyResolvedItemsForMarkAll(id firstDelegate, id secondDelegate) {
     id vm = nil;
     @try { vm = [firstDelegate valueForKey:@"viewModel"]; } @catch (__unused NSException *e) {}
     if (!vm) @try { vm = [secondDelegate valueForKey:@"currentViewModel"]; } @catch (__unused NSException *e) {}
@@ -638,15 +638,15 @@ static NSArray *theta_storyResolvedItemsForMarkAll(id firstDelegate, id secondDe
     return bucket;
 }
 
-static void thetaLocalSeenMarkCurrent(IGStoryFullscreenCell *self) {
+static void zeusLocalSeenMarkCurrent(IGStoryFullscreenCell *self) {
     if (!ENABLED(@"Seen Receipts Stay Local")) return;
-    [ThetaHelper performHapticFeedbackIfEnabled];
+    [ZeusHelper performHapticFeedbackIfEnabled];
     id firstDelegate = nil;
     id secondDelegate = nil;
-    thetaLocalSeenResolveDelegates(self, &firstDelegate, &secondDelegate);
+    zeusLocalSeenResolveDelegates(self, &firstDelegate, &secondDelegate);
     if (!firstDelegate || !secondDelegate) {
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Mark failed" subtitle:@"Story viewer not found." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Mark failed" subtitle:@"Story viewer not found." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
         return;
     }
@@ -657,36 +657,36 @@ static void thetaLocalSeenMarkCurrent(IGStoryFullscreenCell *self) {
     } @catch (__unused NSException *e) {}
     if (!currentItem) return;
 
-    THStorySeenReceiptNetworkGuardEnterWithContext(firstDelegate, secondDelegate);
+    ZUStorySeenReceiptNetworkGuardEnterWithContext(firstDelegate, secondDelegate);
     BOOL ghostOn = ENABLED(@"Story Ghost");
     if (ghostOn) shouldBeSeen = YES;
-    BOOL ok = thetaStoryMarkItemAsSeen(self, currentItem);
+    BOOL ok = zeusStoryMarkItemAsSeen(self, currentItem);
     if (ghostOn) shouldBeSeen = NO;
-    THStorySeenReceiptNetworkGuardLeave();
+    ZUStorySeenReceiptNetworkGuardLeave();
 
     if (ENABLED(@"Show Banners")) {
         if (ok) {
-            [ThetaHelper showToastWithTitle:@"Marked on this device"
+            [ZeusHelper showToastWithTitle:@"Marked on this device"
                                     subtitle:@"Stories clear here; receipts are not sent."
                                         icon:[UIImage systemImageNamed:@"iphone"]
                                     autoHide:3
                                      openURL:nil];
         } else {
-            [ThetaHelper showToastWithTitle:@"Mark failed" subtitle:@"Couldn't update seen state." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Mark failed" subtitle:@"Couldn't update seen state." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
     }
-    if (ok) thetaStorySkipIfEnabled(firstDelegate);
+    if (ok) zeusStorySkipIfEnabled(firstDelegate);
 }
 
-static void thetaLocalSeenMarkAll(IGStoryFullscreenCell *self) {
+static void zeusLocalSeenMarkAll(IGStoryFullscreenCell *self) {
     if (!ENABLED(@"Seen Receipts Stay Local")) return;
-    [ThetaHelper performHapticFeedbackIfEnabled];
+    [ZeusHelper performHapticFeedbackIfEnabled];
     id firstDelegate = nil;
     id secondDelegate = nil;
-    thetaLocalSeenResolveDelegates(self, &firstDelegate, &secondDelegate);
+    zeusLocalSeenResolveDelegates(self, &firstDelegate, &secondDelegate);
     if (!firstDelegate || !secondDelegate) return;
 
-    NSArray *items = theta_storyResolvedItemsForMarkAll(firstDelegate, secondDelegate);
+    NSArray *items = zeus_storyResolvedItemsForMarkAll(firstDelegate, secondDelegate);
     if (![items isKindOfClass:[NSArray class]] || items.count == 0u) return;
 
     /* Only the item aligned with `-currentStoryItem` is honored; iterate by retargeting the playhead between marks (restore after). */
@@ -696,7 +696,7 @@ static void thetaLocalSeenMarkAll(IGStoryFullscreenCell *self) {
             priorFocused = [firstDelegate performSelector:@selector(currentStoryItem)];
     } @catch (__unused NSException *e) {}
 
-    THStorySeenReceiptNetworkGuardEnterWithContext(firstDelegate, secondDelegate);
+    ZUStorySeenReceiptNetworkGuardEnterWithContext(firstDelegate, secondDelegate);
     BOOL ghostOn = ENABLED(@"Story Ghost");
     if (ghostOn) shouldBeSeen = YES;
     @try {
@@ -706,71 +706,71 @@ static void thetaLocalSeenMarkAll(IGStoryFullscreenCell *self) {
                 if ([firstDelegate respondsToSelector:@selector(setCurrentStoryItem:)])
                     ((void (*)(id, SEL, id))objc_msgSend)(firstDelegate, @selector(setCurrentStoryItem:), item);
                 else
-                    ThetaSetValueForKey(firstDelegate, item, @"currentStoryItem");
+                    ZeusSetValueForKey(firstDelegate, item, @"currentStoryItem");
             } @catch (__unused NSException *e) {}
-            (void)thetaStoryMarkItemAsSeen(self, item);
+            (void)zeusStoryMarkItemAsSeen(self, item);
         }
     } @catch (__unused NSException *e) {}
     if (ghostOn) shouldBeSeen = NO;
-    THStorySeenReceiptNetworkGuardLeave();
+    ZUStorySeenReceiptNetworkGuardLeave();
 
     if (priorFocused) {
         @try {
             if ([firstDelegate respondsToSelector:@selector(setCurrentStoryItem:)])
                 ((void (*)(id, SEL, id))objc_msgSend)(firstDelegate, @selector(setCurrentStoryItem:), priorFocused);
             else
-                ThetaSetValueForKey(firstDelegate, priorFocused, @"currentStoryItem");
+                ZeusSetValueForKey(firstDelegate, priorFocused, @"currentStoryItem");
         } @catch (__unused NSException *e) {}
     }
 
     if (ENABLED(@"Show Banners")) {
-        [ThetaHelper showToastWithTitle:@"All marked on this device"
+        [ZeusHelper showToastWithTitle:@"All marked on this device"
                                 subtitle:@"Receipts are not sent."
                                     icon:[UIImage systemImageNamed:@"iphone"]
                                 autoHide:3
                                  openURL:nil];
     }
-    thetaStorySkipIfEnabled(firstDelegate);
+    zeusStorySkipIfEnabled(firstDelegate);
 }
 
 static void handleLocalSeenTap(IGStoryFullscreenCell *self, UIButton *sender) {
-    thetaLocalSeenMarkCurrent(self);
+    zeusLocalSeenMarkCurrent(self);
 }
 
 static void handleLocalSeenLongPress(IGStoryFullscreenCell *self, UILongPressGestureRecognizer *recognizer) {
     if (recognizer.state == UIGestureRecognizerStateBegan)
-        thetaLocalSeenMarkAll(self);
+        zeusLocalSeenMarkAll(self);
 }
 
 static void seenButtonPressedAll(IGStoryFullscreenCell *self) {
-    id firstDelegate = thetaStorySectionControllerFromCell(self);
-    id secondDelegate = thetaStoryViewerFromCell(self);
+    id firstDelegate = zeusStorySectionControllerFromCell(self);
+    id secondDelegate = zeusStoryViewerFromCell(self);
     if (!firstDelegate || !secondDelegate) return;
 
-    NSArray *items = theta_storyResolvedItemsForMarkAll(firstDelegate, secondDelegate);
+    NSArray *items = zeus_storyResolvedItemsForMarkAll(firstDelegate, secondDelegate);
     if (![items isKindOfClass:[NSArray class]] || items.count == 0) {
-        id viewModel = ThetaValueForKey(secondDelegate, @"currentViewModel");
-        items = ThetaValueForKey(viewModel, @"items");
+        id viewModel = ZeusValueForKey(secondDelegate, @"currentViewModel");
+        items = ZeusValueForKey(viewModel, @"items");
     }
     if (![items isKindOfClass:[NSArray class]]) return;
 
     for (id item in items) {
         shouldBeSeen = true;
-        (void)thetaStoryMarkItemAsSeen(self, item);
+        (void)zeusStoryMarkItemAsSeen(self, item);
     }
 
     if (ENABLED(@"Show Banners")) {
-        [ThetaHelper showToastWithTitle:@"Marked all as seen!" subtitle:@"They know we are here." icon:[UIImage systemImageNamed:@"eye"] autoHide:4 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Marked all as seen!" subtitle:@"They know we are here." icon:[UIImage systemImageNamed:@"eye"] autoHide:4 openURL:nil];
     }
 
-    thetaStorySkipIfEnabled(firstDelegate);
+    zeusStorySkipIfEnabled(firstDelegate);
 }
 
 static void seenButtonPressedCurrent(IGStoryFullscreenCell *self) {
-    id firstDelegate = thetaStorySectionControllerFromCell(self);
+    id firstDelegate = zeusStorySectionControllerFromCell(self);
     if (!firstDelegate) {
         if (ENABLED(@"Show Banners")) {
-            [ThetaHelper showToastWithTitle:@"Mark failed" subtitle:@"Story section not found." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Mark failed" subtitle:@"Story section not found." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
         return;
     }
@@ -782,7 +782,7 @@ static void seenButtonPressedCurrent(IGStoryFullscreenCell *self) {
 		}
 	} @catch (__unused NSException *e) {}
     if (!currentItem) {
-        id viewer = thetaStoryViewerFromCell(self);
+        id viewer = zeusStoryViewerFromCell(self);
         @try {
             if ([viewer respondsToSelector:@selector(currentStoryItem)]) {
                 currentItem = [viewer performSelector:@selector(currentStoryItem)];
@@ -793,18 +793,18 @@ static void seenButtonPressedCurrent(IGStoryFullscreenCell *self) {
     BOOL ok = NO;
 	if (currentItem) {
 		shouldBeSeen = true;
-        ok = thetaStoryMarkItemAsSeen(self, currentItem);
+        ok = zeusStoryMarkItemAsSeen(self, currentItem);
 	}
 
 	if (ENABLED(@"Show Banners")) {
         if (ok) {
-            [ThetaHelper showToastWithTitle:@"Marked as seen!" subtitle:@"They know we are here." icon:[UIImage systemImageNamed:@"eye"] autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Marked as seen!" subtitle:@"They know we are here." icon:[UIImage systemImageNamed:@"eye"] autoHide:4 openURL:nil];
         } else {
-            [ThetaHelper showToastWithTitle:@"Mark failed" subtitle:@"Couldn't update seen state." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Mark failed" subtitle:@"Couldn't update seen state." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
 	}
 
-	if (ok) thetaStorySkipIfEnabled(firstDelegate);
+	if (ok) zeusStorySkipIfEnabled(firstDelegate);
 }
 
 static NSMutableDictionary *lastSetupOwnerForCell;
@@ -824,7 +824,7 @@ static BOOL isStoryOwnerInAutoMarkList(IGUser *owner) {
     } @catch (__unused NSException *e) {}
     if (!username.length) return NO;
     username = [username lowercaseString];
-    NSArray *list = [[NSUserDefaults standardUserDefaults] objectForKey:@"Theta_StoryGhost_AutoMarkUserIds"];
+    NSArray *list = [[NSUserDefaults standardUserDefaults] objectForKey:@"Zeus_StoryGhost_AutoMarkUserIds"];
     if (![list isKindOfClass:[NSArray class]]) return NO;
     for (id obj in list) {
         if ([obj isKindOfClass:[NSString class]] && [[(NSString *)obj lowercaseString] isEqualToString:username])
@@ -940,18 +940,18 @@ static NSString *mentionDisplayTitle(IGUser *user) {
     return @"Unknown user";
 }
 
-static UIImage *thetaImageFromBundle(NSString *fileName) {
+static UIImage *zeusImageFromBundle(NSString *fileName) {
     if (fileName.length == 0) return nil;
     NSString *mainBundlePath = [NSBundle mainBundle].bundlePath;
-    NSString *resourceBundlePath = [[NSBundle mainBundle] pathForResource:@"ThetaResources" ofType:@"bundle"];
-    NSString *rootBundlePath = mainBundlePath.length > 0 ? [mainBundlePath stringByAppendingPathComponent:@"ThetaResources.bundle"] : nil;
-    NSString *resourcesBundlePath = [NSBundle mainBundle].resourcePath.length > 0 ? [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"ThetaResources.bundle"] : nil;
+    NSString *resourceBundlePath = [[NSBundle mainBundle] pathForResource:@"ZeusResources" ofType:@"bundle"];
+    NSString *rootBundlePath = mainBundlePath.length > 0 ? [mainBundlePath stringByAppendingPathComponent:@"ZeusResources.bundle"] : nil;
+    NSString *resourcesBundlePath = [NSBundle mainBundle].resourcePath.length > 0 ? [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"ZeusResources.bundle"] : nil;
     NSArray<NSString *> *bundlePaths = @[
         rootBundlePath ?: @"",
         resourceBundlePath ?: @"",
         resourcesBundlePath ?: @"",
-        @"/Library/Application Support/ThetaResources.bundle",
-        @"/var/jb/Library/Application Support/ThetaResources.bundle"
+        @"/Library/Application Support/ZeusResources.bundle",
+        @"/var/jb/Library/Application Support/ZeusResources.bundle"
     ];
     for (NSString *bundlePath in bundlePaths) {
         if (bundlePath.length == 0) continue;
@@ -963,7 +963,7 @@ static UIImage *thetaImageFromBundle(NSString *fileName) {
 }
 
 // Returns a solid white SF Symbol image for use in toasts, so it renders white regardless of view tint.
-static UIImage *thetaWhiteSystemSymbol(NSString *name) {
+static UIImage *zeusWhiteSystemSymbol(NSString *name) {
     if (name.length == 0) return nil;
     UIImage *img = [UIImage systemImageNamed:name];
     if (!img) return nil;
@@ -1057,7 +1057,7 @@ static void presentMentionsAlert(IGStoryFullscreenCell *self) {
         }
     }
     [actions addObject:@{ @"title": @"Cancel", @"handler": ^{ /* no-op */ } }];
-    [ThetaHelper showCustomAlertWithActions:@"Story Mentions" description:@"Select a user to open their profile." actions:actions];
+    [ZeusHelper showCustomAlertWithActions:@"Story Mentions" description:@"Select a user to open their profile." actions:actions];
 }
 
 static void setupButtons(IGStoryFullscreenCell *self) {
@@ -1081,22 +1081,22 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     if (!owner) return;
 
     NSNumber *cellKey = @((uintptr_t)self);
-    NSString *ownerKey = thetaStoryOwnerKey(owner) ?: @"";
+    NSString *ownerKey = zeusStoryOwnerKey(owner) ?: @"";
     NSString *lastOwnerKey = lastSetupOwnerForCell[cellKey];
     if ([lastOwnerKey isKindOfClass:[NSString class]] && [lastOwnerKey isEqualToString:ownerKey] && ownerKey.length > 0) {
         return;
     }
     lastSetupOwnerForCell[cellKey] = ownerKey;
 
-    // Only remove Theta-owned controls — never strip Instagram's UIButtons.
+    // Only remove Zeus-owned controls — never strip Instagram's UIButtons.
     for (UIView *subview in [self.subviews copy]) {
-        if ([subview isKindOfClass:[UIButton class]] && subview.tag == kThetaStoryButtonTag) {
+        if ([subview isKindOfClass:[UIButton class]] && subview.tag == kZeusStoryButtonTag) {
             [subview removeFromSuperview];
         }
     }
 
     UIButton *downloadButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    downloadButton.tag = kThetaStoryButtonTag;
+    downloadButton.tag = kZeusStoryButtonTag;
     @try {
         NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"Save Button Color_Color"];
         UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:[UIColor class] fromData:data error:nil];
@@ -1114,7 +1114,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     [downloadButton setTranslatesAutoresizingMaskIntoConstraints:false];
 
     UIButton *seenButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    seenButton.tag = kThetaStoryButtonTag;
+    seenButton.tag = kZeusStoryButtonTag;
     @try {
         NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"Seen Button Color_Color"];
         UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:[UIColor class] fromData:data error:nil];
@@ -1132,7 +1132,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     [seenButton setTranslatesAutoresizingMaskIntoConstraints:false];
 
     UIButton *localSeenButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    localSeenButton.tag = kThetaStoryButtonTag;
+    localSeenButton.tag = kZeusStoryButtonTag;
     @try {
         NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"Seen Button Color_Color"];
         UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:[UIColor class] fromData:data error:nil];
@@ -1163,7 +1163,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     NSInteger itemCount = [items isKindOfClass:[NSArray class]] ? items.count : 0;
 
     UIButton *mentionsButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    mentionsButton.tag = kThetaStoryButtonTag;
+    mentionsButton.tag = kZeusStoryButtonTag;
     @try {
         NSData *data = [[NSUserDefaults standardUserDefaults] objectForKey:@"Mentions Button Color_Color"];
         UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:[UIColor class] fromData:data error:nil];
@@ -1174,7 +1174,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     }
     UIImage *mentionsImage = nil;
     @try {
-        mentionsImage = thetaImageFromBundle(@"ig_icon_story_mention_pano_outline_24_Normal2x.png");
+        mentionsImage = zeusImageFromBundle(@"ig_icon_story_mention_pano_outline_24_Normal2x.png");
     } @catch (__unused NSException *exception) {}
     [mentionsButton setImage:mentionsImage ?: [UIImage systemImageNamed:@"at"] forState:UIControlStateNormal];
     mentionsButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
@@ -1239,7 +1239,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
 
     UIButton *previousButton = nil;
     for (UIButton *button in buttonStack) {
-        ThetaSetCaptureHiding(button);
+        ZeusSetCaptureHiding(button);
         [self addSubview:button];
         [NSLayoutConstraint activateConstraints:@[
             [button.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-8],
@@ -1261,7 +1261,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
 
     __weak IGStoryFullscreenCell *weakSelf = self;
     if (downloadVideos) {
-        thetaStoryAddTap(downloadButton, ^{
+        zeusStoryAddTap(downloadButton, ^{
             IGStoryFullscreenCell *cell = weakSelf;
             if (cell) downloadButtonTapped(cell);
         });
@@ -1279,7 +1279,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     }
 
     if (hideSeenState) {
-        thetaStoryAddTap(seenButton, ^{
+        zeusStoryAddTap(seenButton, ^{
             IGStoryFullscreenCell *cell = weakSelf;
             if (cell) seenButtonPressedCurrent(cell);
         });
@@ -1290,8 +1290,8 @@ static void setupButtons(IGStoryFullscreenCell *self) {
             if ([owner respondsToSelector:@selector(name)]) {
                 ownerUsername = [owner performSelector:@selector(name)];
             } else {
-                id n = ThetaValueForKey(owner, @"username");
-                if (!n) n = ThetaValueForKey(owner, @"name");
+                id n = ZeusValueForKey(owner, @"username");
+                if (!n) n = ZeusValueForKey(owner, @"name");
                 if ([n isKindOfClass:[NSString class]]) ownerUsername = n;
             }
         } @catch (__unused NSException *e) {}
@@ -1306,7 +1306,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
             NSString *lower = nil;
             if (ownerUsername.length) {
                 lower = [[ownerUsername lowercaseString] copy];
-                NSArray *stored = [[NSUserDefaults standardUserDefaults] objectForKey:@"Theta_StoryGhost_AutoMarkUserIds"];
+                NSArray *stored = [[NSUserDefaults standardUserDefaults] objectForKey:@"Zeus_StoryGhost_AutoMarkUserIds"];
                 if ([stored isKindOfClass:[NSArray class]] && [stored containsObject:lower]) {
                     inAutoList = YES;
                 }
@@ -1339,18 +1339,18 @@ static void setupButtons(IGStoryFullscreenCell *self) {
                     if (!ownerUsername.length) return;
                     NSString *lowerLocal = [ownerUsername lowercaseString];
                     NSMutableArray *list = [NSMutableArray array];
-                    NSArray *stored = [[NSUserDefaults standardUserDefaults] objectForKey:@"Theta_StoryGhost_AutoMarkUserIds"];
+                    NSArray *stored = [[NSUserDefaults standardUserDefaults] objectForKey:@"Zeus_StoryGhost_AutoMarkUserIds"];
                     if ([stored isKindOfClass:[NSArray class]]) [list addObjectsFromArray:stored];
 
                     BOOL currentlyInList = [list containsObject:lowerLocal];
                     if (currentlyInList) {
                         // Remove from list
                         [list removeObject:lowerLocal];
-                        [[NSUserDefaults standardUserDefaults] setObject:list forKey:@"Theta_StoryGhost_AutoMarkUserIds"];
+                        [[NSUserDefaults standardUserDefaults] setObject:list forKey:@"Zeus_StoryGhost_AutoMarkUserIds"];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         if (ENABLED(@"Show Banners")) {
-                            UIImage *icon = thetaColoredSystemSymbol(@"minus.circle", [UIColor systemRedColor]);
-                            [ThetaHelper showToastWithTitle:[NSString stringWithFormat:@"Removed %@ from list", displayName]
+                            UIImage *icon = zeusColoredSystemSymbol(@"minus.circle", [UIColor systemRedColor]);
+                            [ZeusHelper showToastWithTitle:[NSString stringWithFormat:@"Removed %@ from list", displayName]
                                                     subtitle:@"They won't know we're here."
                                                         icon:icon
                                                     autoHide:3
@@ -1359,11 +1359,11 @@ static void setupButtons(IGStoryFullscreenCell *self) {
                     } else {
                         // Add to list
                         [list addObject:lowerLocal];
-                        [[NSUserDefaults standardUserDefaults] setObject:list forKey:@"Theta_StoryGhost_AutoMarkUserIds"];
+                        [[NSUserDefaults standardUserDefaults] setObject:list forKey:@"Zeus_StoryGhost_AutoMarkUserIds"];
                         [[NSUserDefaults standardUserDefaults] synchronize];
                         if (ENABLED(@"Show Banners")) {
-                            UIImage *icon = thetaColoredSystemSymbol(@"checkmark.circle.fill", [UIColor systemGreenColor]);
-                            [ThetaHelper showToastWithTitle:[NSString stringWithFormat:@"Added %@ to list", displayName]
+                            UIImage *icon = zeusColoredSystemSymbol(@"checkmark.circle.fill", [UIColor systemGreenColor]);
+                            [ZeusHelper showToastWithTitle:[NSString stringWithFormat:@"Added %@ to list", displayName]
                                                     subtitle:@"They will know we're here."
                                                         icon:icon
                                                     autoHide:3
@@ -1379,7 +1379,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
                 @"handler": ^(id sender){}
             }];
 
-            [ThetaHelper showCustomAlertWithActions:@"✋ Woah! Hold up!"
+            [ZeusHelper showCustomAlertWithActions:@"✋ Woah! Hold up!"
                                          description:@"What would you like to do?"
                                              actions:actions];
         }];
@@ -1388,7 +1388,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
     }
 
     if (showLocalSeenOnly) {
-        thetaStoryAddTap(localSeenButton, ^{
+        zeusStoryAddTap(localSeenButton, ^{
             IGStoryFullscreenCell *cell = weakSelf;
             if (cell) handleLocalSeenTap(cell, localSeenButton);
         });
@@ -1413,7 +1413,7 @@ static void setupButtons(IGStoryFullscreenCell *self) {
                 }
             } @catch (__unused NSException *exception) {}
         }];
-        thetaStoryAddTap(mentionsButton, ^{
+        zeusStoryAddTap(mentionsButton, ^{
             if (!hasMentions) return;
             IGStoryFullscreenCell *cell = weakSelf;
             if (!cell) return;
@@ -1433,11 +1433,11 @@ static void setupButtons(IGStoryFullscreenCell *self) {
                 if ([cell respondsToSelector:@selector(delegate)]) {
                     firstDel = [cell performSelector:@selector(delegate)];
                 } else {
-                    id container = ThetaValueForKey(cell, @"containerView");
-                    if (container) firstDel = ThetaValueForKey(container, @"delegate");
+                    id container = ZeusValueForKey(cell, @"containerView");
+                    if (container) firstDel = ZeusValueForKey(container, @"delegate");
                 }
             } @catch (__unused NSException *e) {}
-            thetaStorySkipIfEnabled(firstDel);
+            zeusStorySkipIfEnabled(firstDel);
         });
     }
 }
@@ -1456,7 +1456,7 @@ static id hook_storyGhost(id self, SEL _cmd) {
     @try {
         setupButtons(self);
     } @catch (NSException *exception) {
-        NSLog(@"[Theta] StoryGhost setupButtons: %@", exception);
+        NSLog(@"[Zeus] StoryGhost setupButtons: %@", exception);
     }
     return media;
 }
@@ -1467,13 +1467,13 @@ static void hook_storyGhost2(id self, SEL _cmd, id fullscreenSectionController, 
 
     if (!ENABLED(@"Story Ghost")) {
         if (ENABLED(@"Seen Receipts Stay Local")) {
-            THStorySeenReceiptNetworkGuardEnterWithContext(fullscreenSectionController, self);
+            ZUStorySeenReceiptNetworkGuardEnterWithContext(fullscreenSectionController, self);
             @try {
                 orig_storyGhost2(self, _cmd, fullscreenSectionController, didMarkItemAsSeen);
             } @catch (__unused NSException *e) {
             }
             // Restore any temporary networker swaps; do not leave the viewer stripped.
-            THStorySeenReceiptNetworkGuardLeave();
+            ZUStorySeenReceiptNetworkGuardLeave();
             return;
         }
         @try {
@@ -1539,7 +1539,7 @@ static void downloadStoryMedia(id self) {
                     } else {
                         dispatch_async(dispatch_get_main_queue(), ^{
                             if (ENABLED(@"Show Banners")) {
-                                [ThetaHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+                                [ZeusHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
                             }
                         });
                     }
@@ -1549,7 +1549,7 @@ static void downloadStoryMedia(id self) {
             } else {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+                        [ZeusHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
                     }
                 });
             }
@@ -1600,7 +1600,7 @@ static void performStoryDownloadWithURL(NSURL *url) {
                         }
 
                         if (success && ENABLED(@"Show Banners")) {
-                            [ThetaHelper showToastWithTitle:@"Story saved!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                            [ZeusHelper showToastWithTitle:@"Story saved!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                         }
                     }];
                 } else {
@@ -1619,7 +1619,7 @@ static void performStoryDownloadWithURL(NSURL *url) {
                         [[NSFileManager defaultManager] moveItemAtPath:permanentFilePath toPath:destPath error:nil];
                     }
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Story saved!" subtitle:@"Saved to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Story saved!" subtitle:@"Saved to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
                     }
                 }
             });
@@ -1628,15 +1628,15 @@ static void performStoryDownloadWithURL(NSURL *url) {
     }
 }
 
-void THRegisterStoryGhostHooks(void) {
-    Class cellCls = ThetaFirstClass(@[ @"IGStoryFullscreenCell" ]);
-    Class viewerCls = ThetaFirstClass(@[ @"IGStoryViewerViewController" ]);
+void ZURegisterStoryGhostHooks(void) {
+    Class cellCls = ZeusFirstClass(@[ @"IGStoryFullscreenCell" ]);
+    Class viewerCls = ZeusFirstClass(@[ @"IGStoryViewerViewController" ]);
     NullHookMessageIfPresent(cellCls, @selector(mediaView), (void *)hook_storyGhost, &orig_storyGhost);
     NullHookMessageIfPresent(viewerCls, @selector(fullscreenSectionController:didMarkItemAsSeen:), (void *)hook_storyGhost2, &orig_storyGhost2);
     if (!orig_storyGhost) {
-        NSLog(@"[Theta] StoryGhost: mediaView hook missing orig — overlay may be unavailable");
+        NSLog(@"[Zeus] StoryGhost: mediaView hook missing orig — overlay may be unavailable");
     }
     if (!orig_storyGhost2) {
-        NSLog(@"[Theta] StoryGhost: didMarkItemAsSeen hook missing orig — mark-seen actions are no-ops");
+        NSLog(@"[Zeus] StoryGhost: didMarkItemAsSeen hook missing orig — mark-seen actions are no-ops");
     }
 }

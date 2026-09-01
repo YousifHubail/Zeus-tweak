@@ -1,11 +1,11 @@
 #import "Include.h"
 #import "Include/InstagramHeaders.h"
-#import "Include/ThetaTweakCommon.h"
+#import "Include/ZeusTweakCommon.h"
 #import <objc/runtime.h>
 
 /* Older builds used "Strip …" titles as NSUserDefaults keys; copy to new keys once. */
 __attribute__((constructor))
-static void THMigrateFeedSettingTitles(void) {
+static void ZUMigrateFeedSettingTitles(void) {
     static NSArray *pairs = @[
         @[@"Strip Inline Suggested Posts", @"Hide Suggested Posts"],
         @[@"Strip Suggested Reels Strip", @"Hide Suggested Reels"],
@@ -27,30 +27,30 @@ static void THMigrateFeedSettingTitles(void) {
 @property (nonatomic, readonly) id model;
 @end
 
-/* Feed list filtering; toggles use Theta wording. */
+/* Feed list filtering; toggles use Zeus wording. */
 
-static NSArray *theta_removeAdsFromList(NSArray *list);
+static NSArray *zeus_removeAdsFromList(NSArray *list);
 
-static BOOL theta_shouldRemoveSuggestedPosts(void) {
+static BOOL zeus_shouldRemoveSuggestedPosts(void) {
     return ENABLED(@"Hide Suggested Posts");
 }
-static BOOL theta_shouldRemoveSuggestedReelsCarousel(void) {
+static BOOL zeus_shouldRemoveSuggestedReelsCarousel(void) {
     return ENABLED(@"Hide Suggested Reels");
 }
-static BOOL theta_shouldRemoveSuggestedAccounts(void) {
+static BOOL zeus_shouldRemoveSuggestedAccounts(void) {
     return ENABLED(@"Hide People You May Know");
 }
-static BOOL theta_shouldRemoveThreadsCarousel(void) {
+static BOOL zeus_shouldRemoveThreadsCarousel(void) {
     return ENABLED(@"Hide Threads Carousel");
 }
-static BOOL theta_shouldHideStoriesTrayRow(void) {
+static BOOL zeus_shouldHideStoriesTrayRow(void) {
     return ENABLED(@"Hide Home Stories");
 }
-static BOOL theta_shouldBlankHomeFeed(void) {
+static BOOL zeus_shouldBlankHomeFeed(void) {
     return ENABLED(@"Mute Entire Home Feed");
 }
 
-NSArray *ThetaApplyHideFeedFiltering(NSArray *list, BOOL isMainFeed) {
+NSArray *ZeusApplyHideFeedFiltering(NSArray *list, BOOL isMainFeed) {
     if (![list isKindOfClass:[NSArray class]] || list.count == 0)
         return list;
 
@@ -61,7 +61,7 @@ NSArray *ThetaApplyHideFeedFiltering(NSArray *list, BOOL isMainFeed) {
         @autoreleasepool {
             if (!obj) continue;
 
-            if (isMainFeed && theta_shouldRemoveSuggestedPosts()) {
+            if (isMainFeed && zeus_shouldRemoveSuggestedPosts()) {
                 NSString *grpTitle = nil;
                 if ([obj isKindOfClass:%c(IGFeedGroupHeaderViewModel)] && [obj respondsToSelector:@selector(title)])
                     grpTitle = ((NSString *(*)(id, SEL))objc_msgSend)(obj, @selector(title));
@@ -76,19 +76,19 @@ NSArray *ThetaApplyHideFeedFiltering(NSArray *list, BOOL isMainFeed) {
                     continue;
             }
 
-            if (isMainFeed && theta_shouldRemoveSuggestedReelsCarousel()) {
+            if (isMainFeed && zeus_shouldRemoveSuggestedReelsCarousel()) {
                 if ([obj isKindOfClass:%c(IGFeedScrollableClipsModel)])
                     continue;
             }
 
-            if (theta_shouldRemoveSuggestedAccounts()) {
+            if (zeus_shouldRemoveSuggestedAccounts()) {
                 if (isMainFeed && [obj isKindOfClass:%c(IGHScrollAYMFModel)])
                     continue;
                 if ([obj isKindOfClass:%c(IGSuggestedUserInReelsModel)])
                     continue;
             }
 
-            if (theta_shouldRemoveThreadsCarousel()) {
+            if (zeus_shouldRemoveThreadsCarousel()) {
                 if (isMainFeed) {
                     Class threadsCls = objc_getClass("IGThreadsInFeedModels.IGThreadsInFeedModel");
                     if ([obj isKindOfClass:%c(IGBloksFeedUnitModel)] || (threadsCls && [obj isKindOfClass:threadsCls]))
@@ -98,12 +98,12 @@ NSArray *ThetaApplyHideFeedFiltering(NSArray *list, BOOL isMainFeed) {
                     continue;
             }
 
-            if (isMainFeed && theta_shouldHideStoriesTrayRow()) {
+            if (isMainFeed && zeus_shouldHideStoriesTrayRow()) {
                 if ([obj isKindOfClass:%c(IGStoryDataController)])
                     continue;
             }
 
-            if (isMainFeed && theta_shouldBlankHomeFeed()) {
+            if (isMainFeed && zeus_shouldBlankHomeFeed()) {
                 if ([obj isKindOfClass:%c(IGPostCreationManager)]
                     || [obj isKindOfClass:%c(IGMedia)]
                     || [obj isKindOfClass:%c(IGEndOfFeedDemarcatorModel)]
@@ -129,7 +129,7 @@ NSArray *ThetaApplyHideFeedFiltering(NSArray *list, BOOL isMainFeed) {
     return [out copy];
 }
 
-static NSArray *theta_removeAdsFromList(NSArray *list) {
+static NSArray *zeus_removeAdsFromList(NSArray *list) {
     if (!ENABLED(@"Disable Ads") || ![list isKindOfClass:[NSArray class]])
         return list;
     NSMutableArray *filteredObjs = [NSMutableArray arrayWithCapacity:list.count];
@@ -153,9 +153,9 @@ static NSArray *theta_removeAdsFromList(NSArray *list) {
 static NSArray *(*orig_sundialObjs)(id, SEL, id);
 static NSArray *hook_sundialObjs(id self, SEL _cmd, id arg1) {
     NSArray *r = orig_sundialObjs ? orig_sundialObjs(self, _cmd, arg1) : nil;
-    r = ThetaApplyHideFeedFiltering(r ?: @[], NO);
+    r = ZeusApplyHideFeedFiltering(r ?: @[], NO);
     if (ENABLED(@"Disable Ads"))
-        r = theta_removeAdsFromList(r);
+        r = zeus_removeAdsFromList(r);
     return r;
 }
 
@@ -163,35 +163,35 @@ static NSArray *(*orig_ctxObjs)(id, SEL, id);
 static NSArray *hook_ctxObjs(id self, SEL _cmd, id arg1) {
     NSArray *r = orig_ctxObjs(self, _cmd, arg1);
     if (!ENABLED(@"Disable Ads")) return r;
-    return theta_removeAdsFromList(r);
+    return zeus_removeAdsFromList(r);
 }
 
 static NSArray *(*orig_videoObjs)(id, SEL, id);
 static NSArray *hook_videoObjs(id self, SEL _cmd, id arg1) {
     NSArray *r = orig_videoObjs(self, _cmd, arg1);
     if (!ENABLED(@"Disable Ads")) return r;
-    return theta_removeAdsFromList(r);
+    return zeus_removeAdsFromList(r);
 }
 
 static NSArray *(*orig_chainObjs)(id, SEL, id);
 static NSArray *hook_chainObjs(id self, SEL _cmd, id arg1) {
     NSArray *r = orig_chainObjs(self, _cmd, arg1);
     if (!ENABLED(@"Disable Ads")) return r;
-    return theta_removeAdsFromList(r);
+    return zeus_removeAdsFromList(r);
 }
 
 static NSArray *(*orig_exploreObjs)(id, SEL, id);
 static NSArray *hook_exploreObjs(id self, SEL _cmd, id arg1) {
     NSArray *r = orig_exploreObjs(self, _cmd, arg1);
     if (!ENABLED(@"Disable Ads")) return r;
-    return theta_removeAdsFromList(r);
+    return zeus_removeAdsFromList(r);
 }
 
 static NSArray *(*orig_exploreSwiftObjs)(id, SEL, id);
 static NSArray *hook_exploreSwiftObjs(id self, SEL _cmd, id arg1) {
     NSArray *r = orig_exploreSwiftObjs(self, _cmd, arg1);
     if (!ENABLED(@"Disable Ads")) return r;
-    return theta_removeAdsFromList(r);
+    return zeus_removeAdsFromList(r);
 }
 
 static void (*orig_endFeedCell)(id self, SEL _cmd, id arg1);
@@ -205,7 +205,7 @@ static void hook_endFeedCell(id self, SEL _cmd, id arg1) {
     } @catch (__unused NSException *e) {}
 }
 
-void THRegisterHideFeedFilteringHooks(void) {
+void ZURegisterHideFeedFilteringHooks(void) {
     NullHookMessageIfPresent(objc_getClass("IGSundialFeedDataSource"), @selector(objectsForListAdapter:), (void *)hook_sundialObjs, &orig_sundialObjs);
     NullHookMessageIfPresent(objc_getClass("IGContextualFeedViewController"), @selector(objectsForListAdapter:), (void *)hook_ctxObjs, &orig_ctxObjs);
     NullHookMessageIfPresent(objc_getClass("IGVideoFeedViewController"), @selector(objectsForListAdapter:), (void *)hook_videoObjs, &orig_videoObjs);

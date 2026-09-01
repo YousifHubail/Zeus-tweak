@@ -1,7 +1,7 @@
 /// `seenButtonPressedCurrent` is defined in StoryGhost.m (same amalgamation TU, ordered before this file).
 
 /// Resolves `contentViewForAnimation` as an `IGStoryFullscreenCell` when `viewController` is an `IGStoryViewerViewController`.
-static IGStoryFullscreenCell *theta_storyFullscreenCellFromViewer(UIViewController *viewController) {
+static IGStoryFullscreenCell *zeus_storyFullscreenCellFromViewer(UIViewController *viewController) {
     if (!viewController) {
         return nil;
     }
@@ -14,7 +14,7 @@ static IGStoryFullscreenCell *theta_storyFullscreenCellFromViewer(UIViewControll
     @try {
         contentViewForAnimation = [viewController valueForKey:@"contentViewForAnimation"];
     } @catch (NSException *e) {
-        NSLog(@"[Theta] contentViewForAnimation: %@", e);
+        NSLog(@"[Zeus] contentViewForAnimation: %@", e);
         return nil;
     }
     if (!contentViewForAnimation || ![contentViewForAnimation isKindOfClass:cellClass]) {
@@ -32,17 +32,17 @@ static void hook_seenStoryOnReply(id self, SEL _cmd, id inputView, id text, id q
     }
 
     @try {
-        UIViewController *viewController = [ThetaHelper nearestViewController:self];
-        IGStoryFullscreenCell *cell = theta_storyFullscreenCellFromViewer(viewController);
+        UIViewController *viewController = [ZeusHelper nearestViewController:self];
+        IGStoryFullscreenCell *cell = zeus_storyFullscreenCellFromViewer(viewController);
         if (cell) {
             seenButtonPressedCurrent(cell);
         }
     } @catch (NSException *exception) {
-        NSLog(@"[Theta] hook_seenStoryOnReply: %@", exception);
+        NSLog(@"[Zeus] hook_seenStoryOnReply: %@", exception);
     }
 }
 
-void THRegisterStorySeenOnHooks(void) {
+void ZURegisterStorySeenOnHooks(void) {
     if ([appVersion compare:@"423.0.0" options:NSNumericSearch] == NSOrderedAscending) {
         NullHookMessageEx(objc_getClass("IGStoryFullscreenDefaultFooterView"), @selector(inputView:didTapSendButtonWithText:quotedContent:animatedEmojiCharacterRanges:defaultPowerupsMetadata:imageGlyphLocations:replyBarGroupRecipients:), (void *)hook_seenStoryOnReply, &orig_seenStoryOnReply);
     } else {

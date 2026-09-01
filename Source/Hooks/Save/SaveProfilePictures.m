@@ -1,18 +1,18 @@
 #import <objc/runtime.h>
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 // Forward declaration of the BlockTarget category method from StoryGhost.m
 @interface UIGestureRecognizer (BlockTarget)
 - (void)addActionBlock:(void (^)(UIGestureRecognizer *sender))block;
 @end
 
 // Marker to ensure we only add our long press once per view
-static char kThetaProfilePicLongPressKey;
-static char kThetaProfilePicLongPressDelegateKey;
+static char kZeusProfilePicLongPressKey;
+static char kZeusProfilePicLongPressDelegateKey;
 
-@interface ThetaGestureDelegate : NSObject <UIGestureRecognizerDelegate>
+@interface ZeusGestureDelegate : NSObject <UIGestureRecognizerDelegate>
 @end
 
-@implementation ThetaGestureDelegate
+@implementation ZeusGestureDelegate
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
 	return YES;
 }
@@ -84,7 +84,7 @@ static void hook_saveProfilePictures(id self, SEL _cmd) {
 										} else {
 											dispatch_async(dispatch_get_main_queue(), ^{
 												if (ENABLED(@"Show Banners")) {
-													[ThetaHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+													[ZeusHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 												}
 											});
 										}
@@ -94,7 +94,7 @@ static void hook_saveProfilePictures(id self, SEL _cmd) {
 								} else {
 									dispatch_async(dispatch_get_main_queue(), ^{
 										if (ENABLED(@"Show Banners")) {
-											[ThetaHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+											[ZeusHelper showToastWithTitle:@"Permission Denied" subtitle:@"Please enable photo library access in Settings." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 										}
 									});
 								}
@@ -102,7 +102,7 @@ static void hook_saveProfilePictures(id self, SEL _cmd) {
 								performProfilePictureDownloadWithURL(imageURL);
 							}
 						} else {
-							[ThetaHelper showCustomAlertWithActions:@"Profile Picture" description:@"Couldn't find the profile image URL." actions:@[@{ @"title": @"OK", @"handler": ^{ /* no-op */ } }]];
+							[ZeusHelper showCustomAlertWithActions:@"Profile Picture" description:@"Couldn't find the profile image URL." actions:@[@{ @"title": @"OK", @"handler": ^{ /* no-op */ } }]];
 						}
 					} @catch (NSException *exception) {
 						NSLog(@"Error downloading profile picture: %@", exception);
@@ -120,10 +120,10 @@ static void hook_saveProfilePictures(id self, SEL _cmd) {
 								MediaViewController *mediaVC = [MediaViewController new];
 								[mediaVC initWithMediaURL:imageURL];
 								mediaVC.modalPresentationStyle = UIModalPresentationFullScreen;
-								[[ThetaHelper topViewController] presentViewController:mediaVC animated:YES completion:nil];
+								[[ZeusHelper topViewController] presentViewController:mediaVC animated:YES completion:nil];
 							});
 						} else {
-							[ThetaHelper showCustomAlertWithActions:@"Profile Picture" description:@"Couldn't find the profile image URL." actions:@[@{ @"title": @"OK", @"handler": ^{ /* no-op */ } }]];
+							[ZeusHelper showCustomAlertWithActions:@"Profile Picture" description:@"Couldn't find the profile image URL." actions:@[@{ @"title": @"OK", @"handler": ^{ /* no-op */ } }]];
 						}
 					} @catch (NSException *exception) {
 						NSLog(@"Error presenting fullscreen profile picture: %@", exception);
@@ -136,7 +136,7 @@ static void hook_saveProfilePictures(id self, SEL _cmd) {
 			@"handler": ^{
             }
         }];
-        [ThetaHelper showCustomAlertWithActions:@"✋ Woah! Hold up!" description:@"What would you like to do with this profile picture?" actions:actions];
+        [ZeusHelper showCustomAlertWithActions:@"✋ Woah! Hold up!" description:@"What would you like to do with this profile picture?" actions:actions];
     }
 }
 
@@ -178,7 +178,7 @@ static void performProfilePictureDownloadWithURL(NSURL *imageURL) {
                         }
 
                         if (success && ENABLED(@"Show Banners")) {
-                            [ThetaHelper showToastWithTitle:@"Profile picture saved!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:[NSURL URLWithString:@"photos-redirect://"]];
+                            [ZeusHelper showToastWithTitle:@"Profile picture saved!" subtitle:@"Tap here to go to camera roll." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:[NSURL URLWithString:@"photos-redirect://"]];
                         }
                     }];
                 } else {
@@ -196,7 +196,7 @@ static void performProfilePictureDownloadWithURL(NSURL *imageURL) {
                         [[NSFileManager defaultManager] moveItemAtPath:permanentFilePath toPath:destPath error:nil];
                     }
                     if (ENABLED(@"Show Banners")) {
-                        [ThetaHelper showToastWithTitle:@"Profile picture saved!" subtitle:@"Saved to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
+                        [ZeusHelper showToastWithTitle:@"Profile picture saved!" subtitle:@"Saved to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:3 openURL:nil];
                     }
                 }
             });
@@ -205,6 +205,6 @@ static void performProfilePictureDownloadWithURL(NSURL *imageURL) {
     }
 }
 
-void THRegisterSaveProfilePicturesHooks(void) {
+void ZURegisterSaveProfilePicturesHooks(void) {
     NullHookMessageEx(objc_getClass("IGProfilePictureImageView"), @selector(buttonDidReceiveTouchDown), (void *)hook_saveProfilePictures, &orig_saveProfilePictures);
 }

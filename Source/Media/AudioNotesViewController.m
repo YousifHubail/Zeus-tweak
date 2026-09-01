@@ -1,7 +1,7 @@
 #import "Include/AudioNotesViewController.h"
 #import "Include/CustomToastView.h"
 #import "Include/InstagramHeaders.h"
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 #import "Include/MediaViewController.h"
 #import <AVFoundation/AVFoundation.h>
 
@@ -89,7 +89,7 @@
     self.title = self.contentMode == AudioNotesContentModeSavedMedia ? @"Saved Media" : @"Audio Notes";
     
     // Setup navigation bar
-    	self.navigationController.navigationBar.tintColor = [ThetaHelper iotaPinkColor];
+    	self.navigationController.navigationBar.tintColor = [ZeusHelper iotaPinkColor];
     
     // Setup table view
     self.tableView.backgroundColor = [UIColor systemGroupedBackgroundColor];
@@ -102,7 +102,7 @@
     [self.segmentedControl addTarget:self action:@selector(segmentChanged:) forControlEvents:UIControlEventValueChanged];
     self.segmentedControl.apportionsSegmentWidthsByContent = YES;
     if (@available(iOS 13.0, *)) {
-        self.segmentedControl.selectedSegmentTintColor = [ThetaHelper iotaPinkColor];
+        self.segmentedControl.selectedSegmentTintColor = [ZeusHelper iotaPinkColor];
         NSDictionary *attrs = @{ NSForegroundColorAttributeName: UIColor.whiteColor };
         [self.segmentedControl setTitleTextAttributes:attrs forState:UIControlStateSelected];
     }
@@ -120,7 +120,7 @@
     
     // Add refresh control
     self.refreshControl = [[UIRefreshControl alloc] init];
-    	self.refreshControl.tintColor = [ThetaHelper iotaPinkColor];
+    	self.refreshControl.tintColor = [ZeusHelper iotaPinkColor];
     [self.refreshControl addTarget:self action:@selector(refreshAudioFiles) forControlEvents:UIControlEventValueChanged];
     
     // Load initial content
@@ -392,7 +392,7 @@
             
             cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ • %@", dateString, sizeString];
             cell.imageView.image = [UIImage systemImageNamed:@"music.note"];
-            	cell.imageView.tintColor = [ThetaHelper iotaPinkColor];
+            	cell.imageView.tintColor = [ZeusHelper iotaPinkColor];
     } else {
         // Delete all button
         cell.textLabel.text = self.contentMode == AudioNotesContentModeSavedMedia ? @"Delete All Saved Media" : @"Delete All Audio Notes";
@@ -453,7 +453,7 @@
                 NSError *copyError = nil;
                 if (![[NSFileManager defaultManager] copyItemAtPath:audioFile.filePath toPath:tempPath error:&copyError]) {
                     NSLog(@"Error copying video to temp: %@", copyError);
-                    [ThetaHelper showToastWithTitle:@"Playback Error" subtitle:@"Unable to prepare video for playback" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Playback Error" subtitle:@"Unable to prepare video for playback" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
                     return;
                 }
                 NSURL *url = [NSURL fileURLWithPath:tempPath];
@@ -517,7 +517,7 @@
     }];
     
     NSString *desc = isVideo ? @"What would you like to do with this video?" : (isImage ? @"What would you like to do with this photo?" : @"What would you like to do with this audio note?");
-    [ThetaHelper showCustomAlertWithActions:[audioFile.filename stringByDeletingPathExtension] 
+    [ZeusHelper showCustomAlertWithActions:[audioFile.filename stringByDeletingPathExtension] 
                                  description:desc 
                                      actions:actions];
 }
@@ -531,11 +531,11 @@
                 BOOL success = [[NSFileManager defaultManager] removeItemAtPath:audioFile.filePath error:&error];
                 
                 if (success) {
-                    [ThetaHelper showToastWithTitle:@"Audio File Deleted" subtitle:[NSString stringWithFormat:@"\"%@\" has been deleted", audioFile.filename] icon:[UIImage systemImageNamed:@"trash"] autoHide:2 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Audio File Deleted" subtitle:[NSString stringWithFormat:@"\"%@\" has been deleted", audioFile.filename] icon:[UIImage systemImageNamed:@"trash"] autoHide:2 openURL:nil];
                     [self loadContent]; // Refresh the list
                 } else {
                     NSLog(@"Error deleting file: %@", error.localizedDescription);
-                    [ThetaHelper showToastWithTitle:@"Delete Failed" subtitle:@"Unable to delete the audio file" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Delete Failed" subtitle:@"Unable to delete the audio file" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
                 }
             }
         },
@@ -545,7 +545,7 @@
         }
     ];
     
-    [ThetaHelper showCustomAlertWithActions:@"Delete Audio Note" 
+    [ZeusHelper showCustomAlertWithActions:@"Delete Audio Note" 
                                  description:[NSString stringWithFormat:@"Are you sure you want to delete \"%@\"? This action cannot be undone.", [audioFile.filename stringByDeletingPathExtension]] 
                                      actions:actions];
 }
@@ -578,7 +578,7 @@
         NSString *newFilename = [textField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
         
         if (newFilename.length == 0) {
-            [ThetaHelper showToastWithTitle:@"Rename Failed" subtitle:@"Please enter a valid filename" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Rename Failed" subtitle:@"Please enter a valid filename" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             return;
         }
         
@@ -589,7 +589,7 @@
         NSString *newFilePath = [[audioFile.filePath stringByDeletingLastPathComponent] stringByAppendingPathComponent:newFullFilename];
         
         if ([[NSFileManager defaultManager] fileExistsAtPath:newFilePath]) {
-            [ThetaHelper showToastWithTitle:@"Rename Failed" subtitle:@"A file with this name already exists" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Rename Failed" subtitle:@"A file with this name already exists" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
             return;
         }
         
@@ -598,11 +598,11 @@
         BOOL success = [[NSFileManager defaultManager] moveItemAtPath:audioFile.filePath toPath:newFilePath error:&error];
         
         if (success) {
-            [ThetaHelper showToastWithTitle:@"File Renamed" subtitle:[NSString stringWithFormat:@"Renamed to \"%@\"", newFullFilename] icon:[UIImage systemImageNamed:@"checkmark.circle"] autoHide:2 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"File Renamed" subtitle:[NSString stringWithFormat:@"Renamed to \"%@\"", newFullFilename] icon:[UIImage systemImageNamed:@"checkmark.circle"] autoHide:2 openURL:nil];
             [self loadContent]; // Refresh the list
         } else {
             NSLog(@"Error renaming file: %@", error.localizedDescription);
-            [ThetaHelper showToastWithTitle:@"Rename Failed" subtitle:@"Unable to rename the audio file" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Rename Failed" subtitle:@"Unable to rename the audio file" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
         }
     }];
     
@@ -653,9 +653,9 @@
                 }
                 
                 if (failedCount == 0) {
-                    [ThetaHelper showToastWithTitle:@"All Audio Notes Deleted" subtitle:[NSString stringWithFormat:@"Successfully deleted %ld audio note%@", (long)deletedCount, deletedCount == 1 ? @"" : @"s"] icon:[UIImage systemImageNamed:@"trash"] autoHide:3 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"All Audio Notes Deleted" subtitle:[NSString stringWithFormat:@"Successfully deleted %ld audio note%@", (long)deletedCount, deletedCount == 1 ? @"" : @"s"] icon:[UIImage systemImageNamed:@"trash"] autoHide:3 openURL:nil];
                 } else {
-                    [ThetaHelper showToastWithTitle:@"Deletion Completed" subtitle:[NSString stringWithFormat:@"Deleted %ld audio note%@, %ld failed", (long)deletedCount, deletedCount == 1 ? @"" : @"s", (long)failedCount] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
+                    [ZeusHelper showToastWithTitle:@"Deletion Completed" subtitle:[NSString stringWithFormat:@"Deleted %ld audio note%@, %ld failed", (long)deletedCount, deletedCount == 1 ? @"" : @"s", (long)failedCount] icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
                 }
                 
                 [self loadContent]; // Refresh the list
@@ -667,7 +667,7 @@
         }
     ];
     
-    [ThetaHelper showCustomAlertWithActions:(self.contentMode == AudioNotesContentModeSavedMedia ? @"Delete All Saved Media" : @"Delete All Audio Notes") 
+    [ZeusHelper showCustomAlertWithActions:(self.contentMode == AudioNotesContentModeSavedMedia ? @"Delete All Saved Media" : @"Delete All Audio Notes") 
                                  description:[NSString stringWithFormat:@"Are you sure you want to delete all %lu audio note%@? This action cannot be undone.", (unsigned long)self.audioFiles.count, self.audioFiles.count == 1 ? @"" : @"s"] 
                                      actions:actions];
 }
@@ -728,7 +728,7 @@
         if (error.code == 1937337955) {
             [self tryFallbackPlayback:audioFile];
         } else {
-            [ThetaHelper showToastWithTitle:@"Playback Error" subtitle:errorMessage icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Playback Error" subtitle:errorMessage icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
         }
         return;
     }
@@ -746,7 +746,7 @@
         [self startProgressTimer];
         [self cancelAutoHideTimer];
     } else {
-        [ThetaHelper showToastWithTitle:@"Playback Error" subtitle:@"Failed to start audio playback" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Playback Error" subtitle:@"Failed to start audio playback" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
     }
 }
 
@@ -781,16 +781,16 @@
     // Try to preview the audio file
     BOOL canPreview = [documentController presentPreviewAnimated:YES];
     if (canPreview) {
-        [ThetaHelper showToastWithTitle:@"Opening Audio Player" subtitle:@"Playing selected audio file" icon:[UIImage systemImageNamed:@"play.circle"] autoHide:3 openURL:nil];
+        [ZeusHelper showToastWithTitle:@"Opening Audio Player" subtitle:@"Playing selected audio file" icon:[UIImage systemImageNamed:@"play.circle"] autoHide:3 openURL:nil];
     } else {
         // If preview fails, try opening with external apps
         BOOL canOpen = [documentController presentOpenInMenuFromRect:CGRectMake(self.view.bounds.size.width/2, self.view.bounds.size.height/2, 0, 0) 
                                                                inView:self.view 
                                                              animated:YES];
         if (canOpen) {
-            [ThetaHelper showToastWithTitle:@"Opening Audio File" subtitle:@"Choose an app to play this audio file" icon:[UIImage systemImageNamed:@"square.and.arrow.up"] autoHide:3 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Opening Audio File" subtitle:@"Choose an app to play this audio file" icon:[UIImage systemImageNamed:@"square.and.arrow.up"] autoHide:3 openURL:nil];
         } else {
-            [ThetaHelper showToastWithTitle:@"Playback Error" subtitle:@"This audio format is not supported. The file may be corrupted or use an unsupported encoding." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
+            [ZeusHelper showToastWithTitle:@"Playback Error" subtitle:@"This audio format is not supported. The file may be corrupted or use an unsupported encoding." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:4 openURL:nil];
         }
     }
 }
@@ -830,7 +830,7 @@
 
 - (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error {
     NSLog(@"Audio player decode error: %@", error.localizedDescription);
-    [ThetaHelper showToastWithTitle:@"Playback Error" subtitle:@"Audio decode error occurred" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
+    [ZeusHelper showToastWithTitle:@"Playback Error" subtitle:@"Audio decode error occurred" icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:3 openURL:nil];
     
     // Clean up
     self.audioPlayer = nil;
@@ -926,7 +926,7 @@
     self.playerCardView = card;
 
     UIButton *playPause = [UIButton buttonWithType:UIButtonTypeSystem];
-    playPause.tintColor = [ThetaHelper iotaPinkColor];
+    playPause.tintColor = [ZeusHelper iotaPinkColor];
     [playPause setImage:[UIImage systemImageNamed:@"play.fill"] forState:UIControlStateNormal];
     [playPause addTarget:self action:@selector(onPlayPauseTapped) forControlEvents:UIControlEventTouchUpInside];
     [card addSubview:playPause];

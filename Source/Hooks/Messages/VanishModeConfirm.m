@@ -1,11 +1,11 @@
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 
-static void theta_runVanishModeConfirmation(void (^invokeOrig)(void)) {
+static void zeus_runVanishModeConfirmation(void (^invokeOrig)(void)) {
     if (!ENABLED(@"Disappearing DM Confirmation")) {
         invokeOrig();
         return;
     }
-    [ThetaHelper showCustomAlertWithActions:@"✋ Woah! Hold up!" description:@"Are you sure you want to toggle disappearing messages?" actions:@[
+    [ZeusHelper showCustomAlertWithActions:@"✋ Woah! Hold up!" description:@"Are you sure you want to toggle disappearing messages?" actions:@[
         @{
             @"title": @"Yes",
             @"handler": ^(__unused id sender) {
@@ -22,10 +22,10 @@ static void theta_runVanishModeConfirmation(void (^invokeOrig)(void)) {
 
 static void (*orig_handleBottomSwipeableScrollUpdate)(id self, SEL _cmd);
 static void hook_handleBottomSwipeableScrollUpdate(id self, SEL _cmd) {
-    theta_runVanishModeConfirmation(^{ orig_handleBottomSwipeableScrollUpdate(self, _cmd); });
+    zeus_runVanishModeConfirmation(^{ orig_handleBottomSwipeableScrollUpdate(self, _cmd); });
 }
 
-void THRegisterVanishModeConfirmationHooks(void) {
+void ZURegisterVanishModeConfirmationHooks(void) {
     Class c = objc_getClass("IGDirectDisappearingModeSwipeHandler");
     if (!c)
         return;

@@ -1,5 +1,5 @@
 static void (*orig_audioMessage)(id self, SEL _cmd, id audio, CGFloat progress, id assetId, id offlineAssetId, NSInteger messageProductType, id threadKey);
-static char theta_audio_url_key;
+static char zeus_audio_url_key;
 static void hook_audioMessage(id self, SEL _cmd, id audio, CGFloat progress, id assetId, id offlineAssetId, NSInteger messageProductType, id threadKey) {
     orig_audioMessage(self, _cmd, audio, progress, assetId, offlineAssetId, messageProductType, threadKey);
 
@@ -22,7 +22,7 @@ static void hook_audioMessage(id self, SEL _cmd, id audio, CGFloat progress, id 
                         @try { url = [serverAudio valueForKey:@"playbackURL"]; } @catch (__unused NSException *e) {}
                     }
                     if (url) {
-                        objc_setAssociatedObject(self, &theta_audio_url_key, url, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                        objc_setAssociatedObject(self, &zeus_audio_url_key, url, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
                     }
                 }
             });
@@ -37,9 +37,9 @@ static void hook_audioPlayerDidPlayToEnd(id self, SEL _cmd, id arg1) {
     orig_audioPlayerDidPlayToEnd(self, _cmd, arg1);
     
     if (ENABLED(@"Save Audio Messages")) {
-        NSURL *url = objc_getAssociatedObject(self, &theta_audio_url_key);
+        NSURL *url = objc_getAssociatedObject(self, &zeus_audio_url_key);
         if (url) {
-            [ThetaHelper showCustomAlertWithActions:@"Audio Message Download Confirmation" description:@"Would you like to download the audio from this message?" actions:@[
+            [ZeusHelper showCustomAlertWithActions:@"Audio Message Download Confirmation" description:@"Would you like to download the audio from this message?" actions:@[
                 @{
                     @"title": @"Yes, download it!",
                     @"handler": ^(id sender) {
@@ -47,12 +47,12 @@ static void hook_audioPlayerDidPlayToEnd(id self, SEL _cmd, id arg1) {
                         if (mediaSelectionVC) {
                             [mediaSelectionVC performDownloadToAudioNotesWithURL:url completion:^(NSString *filePath, NSString *fileExtension){
                                 if (!filePath) {
-                                    [ThetaHelper showToastWithTitle:@"Audio Download Failed" subtitle:@"The audio download failed." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
+                                    [ZeusHelper showToastWithTitle:@"Audio Download Failed" subtitle:@"The audio download failed." icon:[UIImage systemImageNamed:@"exclamationmark.triangle"] autoHide:2 openURL:nil];
                                     return;
                                 }
 
                                 if (fileExtension && [[fileExtension lowercaseString] isEqualToString:@"mp3"]) {
-                                    [ThetaHelper showToastWithTitle:@"Audio Downloaded" subtitle:@"Saved to Documents/AudioNotes as MP3" icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:nil];
+                                    [ZeusHelper showToastWithTitle:@"Audio Downloaded" subtitle:@"Saved to Documents/AudioNotes as MP3" icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:nil];
                                     return;
                                 }
 
@@ -60,13 +60,13 @@ static void hook_audioPlayerDidPlayToEnd(id self, SEL _cmd, id arg1) {
                                     if (outputPath) {
                                         NSString *ext = [[outputPath pathExtension] lowercaseString];
                                         BOOL isMP3 = [ext isEqualToString:@"mp3"];
-                                        [ThetaHelper showToastWithTitle:@"Audio Downloaded" subtitle:@"Saved audio to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:nil];
+                                        [ZeusHelper showToastWithTitle:@"Audio Downloaded" subtitle:@"Saved audio to local folder." icon:[UIImage systemImageNamed:@"checkmark.circle.fill"] autoHide:2 openURL:nil];
 
-                                        // clear theta_audio_url_key
-                                        objc_setAssociatedObject(self, &theta_audio_url_key, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                                        // clear zeus_audio_url_key
+                                        objc_setAssociatedObject(self, &zeus_audio_url_key, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
                                     } else {
                                         NSLog(@"MP3 convert error: %@", error);
-                                        [ThetaHelper showToastWithTitle:@"Audio Conversion Failed" subtitle:@"Could not convert to MP3." icon:[UIImage systemImageNamed:@"xmark.circle.fill"] autoHide:2 openURL:nil];
+                                        [ZeusHelper showToastWithTitle:@"Audio Conversion Failed" subtitle:@"Could not convert to MP3." icon:[UIImage systemImageNamed:@"xmark.circle.fill"] autoHide:2 openURL:nil];
                                     }
                                 }];
                             }];
@@ -83,10 +83,10 @@ static void hook_audioPlayerDidPlayToEnd(id self, SEL _cmd, id arg1) {
     }
 }
 
-void THRegisterSaveAudioMessageHooks(void) {
+void ZURegisterSaveAudioMessageHooks(void) {
     Class player = objc_getClass("IGDirectAudioPlayer");
     // IG renamed progress: → progressInSeconds:
-    ThetaHookFirst(
+    ZeusHookFirst(
         @[ @"IGDirectAudioPlayer" ],
         @[ @"playWithAudio:progressInSeconds:assetId:offlineAssetId:messageProductType:threadKey:",
            @"playWithAudio:progress:assetId:offlineAssetId:messageProductType:threadKey:" ],

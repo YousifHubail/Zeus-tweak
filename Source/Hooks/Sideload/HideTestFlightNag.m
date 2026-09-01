@@ -1,12 +1,12 @@
 /*
  * Sideload-only: dismiss Instagram Beta / TestFlight force-update nag.
  * Do NOT hook UIViewController's presentViewController: — that breaks UIKit
- * presentations (including Theta's NUX) and can crash with PC=0.
+ * presentations (including Zeus's NUX) and can crash with PC=0.
  */
 
 #ifdef SIDELOAD
 
-static void theta_dismissTestFlightNag(UIViewController *vc) {
+static void zeus_dismissTestFlightNag(UIViewController *vc) {
     if (![vc isKindOfClass:[UIViewController class]]) return;
 
     @try {
@@ -29,23 +29,23 @@ static void theta_dismissTestFlightNag(UIViewController *vc) {
 static void (*orig_tfNag_viewDidLoad)(id, SEL);
 static void hook_tfNag_viewDidLoad(id self, SEL _cmd) {
     if (orig_tfNag_viewDidLoad) orig_tfNag_viewDidLoad(self, _cmd);
-    theta_dismissTestFlightNag((UIViewController *)self);
+    zeus_dismissTestFlightNag((UIViewController *)self);
 }
 
 static void (*orig_tfNag_viewWillAppear)(id, SEL, BOOL);
 static void hook_tfNag_viewWillAppear(id self, SEL _cmd, BOOL animated) {
     if (orig_tfNag_viewWillAppear) orig_tfNag_viewWillAppear(self, _cmd, animated);
-    theta_dismissTestFlightNag((UIViewController *)self);
+    zeus_dismissTestFlightNag((UIViewController *)self);
 }
 
 static void (*orig_tfNag_viewDidAppear)(id, SEL, BOOL);
 static void hook_tfNag_viewDidAppear(id self, SEL _cmd, BOOL animated) {
     if (orig_tfNag_viewDidAppear) orig_tfNag_viewDidAppear(self, _cmd, animated);
-    theta_dismissTestFlightNag((UIViewController *)self);
+    zeus_dismissTestFlightNag((UIViewController *)self);
 }
 
-void THRegisterHideTestFlightNagHooks(void) {
-    Class nag = ThetaFirstClass(@[
+void ZURegisterHideTestFlightNagHooks(void) {
+    Class nag = ZeusFirstClass(@[
         @"_TtC29IGCoreRootTestFlightNagPlugin35TestFlightUpdateNudgeViewController"
     ]);
     if (!nag) return;
@@ -57,7 +57,7 @@ void THRegisterHideTestFlightNagHooks(void) {
 
 #else
 
-void THRegisterHideTestFlightNagHooks(void) {
+void ZURegisterHideTestFlightNagHooks(void) {
 }
 
 #endif

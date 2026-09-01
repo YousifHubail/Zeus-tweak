@@ -1,6 +1,6 @@
 #import "Include/StoryGesturesNuxViewController.h"
 #import <QuartzCore/QuartzCore.h>
-#import "Include/ThetaHelper.h"
+#import "Include/ZeusHelper.h"
 
 @interface StoryGesturesNuxViewController ()
 @property (nonatomic, strong) CAEmitterLayer *confettiLayer;
@@ -69,7 +69,7 @@
 	]];
 
 	UILabel *titleLabel = [self makeTitleLabel:@"Hello and welcome!"];
-	UILabel *subtitleLabel = [self makeSubtitleLabel:@"Thank you for using Theta!"];
+	UILabel *subtitleLabel = [self makeSubtitleLabel:@"Thank you for using Zeus!"];
 	UIStackView *headerStack = [[UIStackView alloc] initWithArrangedSubviews:@[titleLabel, subtitleLabel]];
 	headerStack.axis = UILayoutConstraintAxisVertical;
 	headerStack.alignment = UIStackViewAlignmentCenter;
@@ -81,14 +81,14 @@
 	UIImageView *waveView = [[UIImageView alloc] init];
 	waveView.translatesAutoresizingMaskIntoConstraints = NO;
 	waveView.contentMode = UIViewContentModeScaleAspectFit;
-	waveView.image = [ThetaHelper imageFromEmojiString:@"👋" width:80];
+	waveView.image = [ZeusHelper imageFromEmojiString:@"👋" width:80];
 	[contentView addSubview:waveView];
 
 	// Rows: icon + labels
 	NSArray<NSArray<NSString *> *> *rows = @[
-		@[@"hand.point.up.left.fill", @"Opening Theta's settings.", @"Long press the home tab."],
+		@[@"hand.point.up.left.fill", @"Opening Zeus's settings.", @"Long press the home tab."],
         @[@"exclamationmark.triangle", @"Reporting bugs/issues.", @"Submit bugs in the Discord."],
-        @[@"face.smiling", @"Be sure to have fun!", @"Make the most of Theta!"]
+        @[@"face.smiling", @"Be sure to have fun!", @"Make the most of Zeus!"]
 	];
 
 	UIStackView *rowsStack = [[UIStackView alloc] init];
@@ -262,7 +262,7 @@
 }
 
 - (void)dismissTapped:(id)sender {
-	// ThetaFirst is marked when the NUX is first scheduled (see THTweak.m).
+	// ZeusFirst is marked when the NUX is first scheduled (see ZUTweak.m).
 	[self dismissViewControllerAnimated:YES completion:nil];
 }
 

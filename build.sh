@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Theta build helper
+# Zeus build helper
 #   ./build.sh           → rootful .deb
 #   ./build.sh rootless  → rootless .deb
 #   ./build.sh sideload  → inject into input/Payload → output/Instagram_patched.ipa
@@ -170,6 +170,83 @@ resolve_app_binary() {
 	printf '%s|%s\n' "$app_dir" "$binary_name"
 }
 
+build_sideload_cyan() {
+	# Linux/no-Xcode path. cyan rewrites the injected dylib's Substrate
+	# dependency to @rpath and bundles a matching CydiaSubstrate.framework,
+	# which is precisely what install_name_tool would have done on macOS.
+	local app_dir="$1" app_name="$2" dylib_src="$3" output_dir="$4" ipa_out="$5"
+	local stage="$output_dir/stage" out_app=""
+
+	echo "[Build] Injection backend: cyan ($(cyan --version 2>&1 | tr -d "\n"))"
+	rm -rf "$output_dir"
+	mkdir -p "$stage"
+	cp -a "$app_dir" "$stage/$app_name"
+	out_app="$stage/$app_name"
+
+	# Stale signature + leftovers from any previous injection. cyan ships
+	# its own CydiaSubstrate.framework, so drop any bundled copy first.
+	rm -rf "$out_app/_CodeSignature"
+	rm -rf "$out_app/CydiaSubstrate.framework"
+	rm -rf "$out_app/Frameworks/CydiaSubstrate.framework"
+
+	# A FairPlay-encrypted Mach-O (cryptid=1) left in the bundle cannot be
+	# decrypted under a sideload signature; iOS kills the process with
+	# CODESIGNING / "Invalid Page" the moment that page is touched. Decrypted
+	# IPAs routinely miss nested frameworks, so strip any that slipped through.
+	python3 - "$out_app" <<'PY'
+import lief, os, shutil, sys
+root = sys.argv[1]
+def macho(p):
+    try:
+        with open(p, "rb") as f:
+            return f.read(4) in (b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe",
+                                 b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca")
+    except OSError:
+        return False
+enc = []
+for dp, _, fns in os.walk(root):
+    for fn in fns:
+        p = os.path.join(dp, fn)
+        if os.path.islink(p) or not macho(p):
+            continue
+        b = lief.parse(p)
+        if b is None:
+            continue
+        for sub in (b if isinstance(b, lief.MachO.FatBinary) else [b]):
+            for c in sub.commands:
+                if c.command in (lief.MachO.LoadCommand.TYPE.ENCRYPTION_INFO,
+                                 lief.MachO.LoadCommand.TYPE.ENCRYPTION_INFO_64) \
+                   and c.crypt_id == 1:
+                    enc.append(p)
+for p in dict.fromkeys(enc):
+    rel = os.path.relpath(p, root)
+    fw = p
+    while fw != root and not fw.endswith((".framework", ".appex")):
+        fw = os.path.dirname(fw)
+    if fw != root:
+        print(f"[Build] WARNING: {rel} is still FairPlay-encrypted; removing {os.path.relpath(fw, root)}")
+        shutil.rmtree(fw)
+    else:
+        print(f"[Build] ERROR: main binary {rel} is still encrypted -- use a properly decrypted IPA")
+        sys.exit(1)
+PY
+
+	if [[ -d "$SCRIPT_DIR/ZeusResources.bundle" ]]; then
+		rm -rf "$out_app/ZeusResources.bundle"
+		cp -a "$SCRIPT_DIR/ZeusResources.bundle" "$out_app/ZeusResources.bundle"
+	fi
+
+	echo "[Build] Injecting Zeus.dylib via cyan..."
+	# -u drop UISupportedDevices, -w drop watch app, -q thin to arm64.
+	# No -s: Sideloadly signs with the real developer certificate.
+	cyan -i "$out_app" -o "$ipa_out" -f "$dylib_src" -uwq --overwrite
+
+	rm -rf "$stage"
+	echo "[Build] Sideload IPA ready:"
+	echo "         $ipa_out"
+	ls -lh "$ipa_out"
+}
+
 build_sideload() {
 	local input_payload="$SCRIPT_DIR/input/Payload"
 	local output_dir="$SCRIPT_DIR/output"
@@ -197,9 +274,9 @@ build_sideload() {
 
 	dylib_src=""
 	for cand in \
-		"$SCRIPT_DIR/.theos/obj/Theta.dylib" \
-		"$SCRIPT_DIR/.theos/_/Library/MobileSubstrate/DynamicLibraries/Theta.dylib" \
-		"$SCRIPT_DIR/.theos/_/usr/lib/TweakInject/Theta.dylib"
+		"$SCRIPT_DIR/.theos/obj/Zeus.dylib" \
+		"$SCRIPT_DIR/.theos/_/Library/MobileSubstrate/DynamicLibraries/Zeus.dylib" \
+		"$SCRIPT_DIR/.theos/_/usr/lib/TweakInject/Zeus.dylib"
 	do
 		if [[ -f "$cand" ]]; then
 			dylib_src="$cand"
@@ -207,8 +284,30 @@ build_sideload() {
 		fi
 	done
 	if [[ -z "${dylib_src}" ]]; then
-		echo "[Build] ERROR: Theta.dylib not found after build"
+		echo "[Build] ERROR: Zeus.dylib not found after build"
 		exit 1
+	fi
+
+	# --- Pick an injection backend --------------------------------------
+	# The original path below does its critical Mach-O fix-ups with
+	# install_name_tool + codesign. Those are macOS-only, and every call
+	# site guarded them with `command -v ... &>/dev/null` or `|| true`, so
+	# on Linux they silently did nothing while the build still reported
+	# success. The result was a dylib whose LC_ID was still
+	# /Library/MobileSubstrate/DynamicLibraries/Zeus.dylib and which still
+	# loaded /Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate --
+	# absolute jailbreak-only paths that do not exist on a stock device.
+	# cyan performs exactly those fix-ups, so use it when the Apple tools
+	# are missing, and fail loudly rather than shipping a broken IPA.
+	if ! command -v install_name_tool &>/dev/null || ! command -v codesign &>/dev/null; then
+		if ! command -v cyan &>/dev/null; then
+			echo "[Build] ERROR: no usable injection backend for this host."
+			echo "[Build]   macOS: install Xcode CLT (install_name_tool + codesign)"
+			echo "[Build]   Linux: pipx install pyzule-rw && pipx inject cyan lief"
+			exit 1
+		fi
+		build_sideload_cyan "$app_dir" "$app_name" "$dylib_src" "$output_dir" "$ipa_out"
+		return 0
 	fi
 
 	ensure_insert_dylib
@@ -228,36 +327,36 @@ build_sideload() {
 	fi
 
 	cp -f "$out_bin" "$patched"
-	echo "[Build] Injecting @executable_path/Theta.dylib into ${binary_name}..."
-	"$SCRIPT_DIR/tools/insert_dylib" "@executable_path/Theta.dylib" "$patched" --all-yes --inplace
+	echo "[Build] Injecting @executable_path/Zeus.dylib into ${binary_name}..."
+	"$SCRIPT_DIR/tools/insert_dylib" "@executable_path/Zeus.dylib" "$patched" --all-yes --inplace
 
 	rm -f "$out_bin"
 	cp -f "$patched" "$out_bin"
 	chmod +x "$out_bin"
 	strip_entitlements "$out_bin"
 
-	echo "[Build] Installing Theta.dylib into app root..."
-	cp -f "$dylib_src" "$out_app/Theta.dylib"
+	echo "[Build] Installing Zeus.dylib into app root..."
+	cp -f "$dylib_src" "$out_app/Zeus.dylib"
 	if command -v install_name_tool &>/dev/null; then
-		install_name_tool -id "@executable_path/Theta.dylib" "$out_app/Theta.dylib" 2>/dev/null || true
+		install_name_tool -id "@executable_path/Zeus.dylib" "$out_app/Zeus.dylib" 2>/dev/null || true
 		# Point weak Substrate dependency at the bundled framework
 		install_name_tool -change \
 			"/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate" \
 			"@executable_path/CydiaSubstrate.framework/CydiaSubstrate" \
-			"$out_app/Theta.dylib" 2>/dev/null || true
+			"$out_app/Zeus.dylib" 2>/dev/null || true
 		install_name_tool -change \
 			"@rpath/CydiaSubstrate.framework/CydiaSubstrate" \
 			"@executable_path/CydiaSubstrate.framework/CydiaSubstrate" \
-			"$out_app/Theta.dylib" 2>/dev/null || true
+			"$out_app/Zeus.dylib" 2>/dev/null || true
 	fi
-	strip_entitlements "$out_app/Theta.dylib"
+	strip_entitlements "$out_app/Zeus.dylib"
 
 	stage_substrate_framework "$out_app"
 
 	# Optional resources / ffmpeg (best-effort)
-	if [[ -d "$SCRIPT_DIR/ThetaResources.bundle" ]]; then
-		rm -rf "$out_app/ThetaResources.bundle"
-		cp -f -R "$SCRIPT_DIR/ThetaResources.bundle" "$out_app/ThetaResources.bundle"
+	if [[ -d "$SCRIPT_DIR/ZeusResources.bundle" ]]; then
+		rm -rf "$out_app/ZeusResources.bundle"
+		cp -f -R "$SCRIPT_DIR/ZeusResources.bundle" "$out_app/ZeusResources.bundle"
 	fi
 	local ffmpeg_src="$SCRIPT_DIR/layout/Library/Application Support/ffmpeg.framework"
 	if [[ -d "$ffmpeg_src" ]]; then

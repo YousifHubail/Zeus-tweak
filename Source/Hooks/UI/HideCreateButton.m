@@ -4,8 +4,8 @@ static void hook_hideCreateButton(id self, SEL _cmd) {
 
     if (ENABLED(@"Hide Create Tab/Button")) {
         // Swift home header may not expose _createButton to KVC — never let that abort layout.
-        id createButton = ThetaValueForKey(self, @"_createButton");
-        if (!createButton) createButton = ThetaValueForKey(self, @"createButton");
+        id createButton = ZeusValueForKey(self, @"_createButton");
+        if (!createButton) createButton = ZeusValueForKey(self, @"createButton");
         if ([createButton isKindOfClass:[UIView class]]) {
             [(UIView *)createButton removeFromSuperview];
         }
@@ -32,14 +32,14 @@ static void hook_hideCreateButton3(id self, SEL _cmd) {
 
     if (ENABLED(@"Hide Create Tab/Button")) {
         NSMutableArray *buttonsToRemove = [NSMutableArray array];
-        NSArray *leftButtons = ThetaValueForKey(self, @"_leftButtons");
+        NSArray *leftButtons = ZeusValueForKey(self, @"_leftButtons");
         if (![leftButtons isKindOfClass:[NSArray class]] || leftButtons.count == 0) {
             return;
         }
 
         for (UIView *view in leftButtons) {
             if ([view isKindOfClass:NSClassFromString(@"IGProfileNavigationHeaderViewButton")]) {
-                UIView *buttonView = ThetaValueForKey(view, @"_view");
+                UIView *buttonView = ZeusValueForKey(view, @"_view");
                 if ([buttonView isKindOfClass:[UIView class]]) {
                     NSString *accessibilityLabel = buttonView.accessibilityLabel;
                     if ([accessibilityLabel isEqualToString:@"Tap to open creation menu"]) {
@@ -53,7 +53,7 @@ static void hook_hideCreateButton3(id self, SEL _cmd) {
             }
         }
 
-        NSMutableArray *mutableLeft = ThetaValueForKey(self, @"_leftButtons");
+        NSMutableArray *mutableLeft = ZeusValueForKey(self, @"_leftButtons");
         if ([mutableLeft isKindOfClass:[NSMutableArray class]]) {
             [mutableLeft removeObjectsInArray:buttonsToRemove];
         }
@@ -81,8 +81,8 @@ static id hook_hideCreateButton4(id self, SEL _cmd) {
     return titleView;
 }
 
-void THRegisterHideCreateButtonHooks(void) {
-    Class homeHeader = ThetaFirstClass(@[
+void ZURegisterHideCreateButtonHooks(void) {
+    Class homeHeader = ZeusFirstClass(@[
         @"_TtC16IGHomeFeedHeader20IGHomeFeedHeaderView",
         @"IGHomeFeedHeaderView"
     ]);
@@ -91,12 +91,12 @@ void THRegisterHideCreateButtonHooks(void) {
     // IGSundialViewerNavigationBarOld was removed in IG 444; the Swift class below
     // already existed in 441 too and was always tried first, so dropping the -Old
     // fallback here changes nothing on either version.
-    Class sundialNav = ThetaFirstClass(@[
+    Class sundialNav = ZeusFirstClass(@[
         @"_TtC33IGSundialViewerNavigationBarSwift28IGSundialViewerNavigationBar"
     ]);
     NullHookMessageIfPresent(sundialNav, @selector(layoutSubviews), (void *)hook_hideCreateButton2, &orig_hideCreateButton2);
 
-    Class profileNav = ThetaFirstClass(@[
+    Class profileNav = ZeusFirstClass(@[
         @"_TtC24IGProfileNavigationSwift29IGProfileNavigationHeaderView",
         @"IGProfileNavigationHeaderView",
         @"IGProfileNavigationSwift.IGProfileNavigationHeaderView"
